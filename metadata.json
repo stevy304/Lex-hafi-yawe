@@ -1,0 +1,6 @@
+{
+  "name": "Lex Hafi Yawe - Legal Social Network & Digital Justice Platform",
+  "description": "Enterprise-grade legal social network and digital justice platform for Rwanda: connect with verified legal professionals, explore legislation, access legal aid, book consultations, and participate in legal discussions.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
