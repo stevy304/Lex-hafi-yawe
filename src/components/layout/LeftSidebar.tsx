@@ -212,82 +212,51 @@ export const LeftSidebar: React.FC = () => {
 
             {/* User Dropdown Menu */}
             {isUserMenuOpen && (
-              <div className="absolute bottom-full left-0 mb-2 w-72 bg-white rounded-2xl shadow-xl border border-slate-200 p-2.5 z-50">
-                <div className="pb-2 mb-2 border-b border-slate-100 px-1">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-xs font-bold text-slate-800">
-                      {currentUser.name}
-                    </span>
-                    <button
-                      onClick={() => {
-                        logout();
-                        setIsUserMenuOpen(false);
-                      }}
-                      className="text-2xs text-red-600 hover:text-red-800 font-bold flex items-center gap-1"
-                    >
-                      <LogOut className="w-3 h-3" />
-                      <span>Log Out</span>
-                    </button>
-                  </div>
+              <div className="absolute bottom-full left-0 mb-2 w-64 bg-white rounded-2xl shadow-xl border border-slate-200 p-2.5 z-50">
+                <div className="pb-2 mb-2 border-b border-slate-100 px-2">
+                  <span className="text-xs font-bold text-slate-800 block">
+                    {currentUser.name}
+                  </span>
                   <span className="text-[10px] text-slate-400 block truncate">
                     {currentUser.email || `@${currentUser.username}`}
                   </span>
-                </div>
-
-                <div className="mb-2">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block px-1 mb-1">
-                    Quick Persona Switch
+                  <span className="text-[10px] font-semibold text-blue-700 capitalize mt-0.5 block">
+                    Role: {currentUser.role === 'advocate' ? 'Advocate (RBA)' : currentUser.role}
                   </span>
-                  <div className="space-y-1 max-h-48 overflow-y-auto">
-                    {users.map(u => (
-                      <button
-                        key={u.id}
-                        onClick={() => {
-                          setCurrentUser(u);
-                          setIsUserMenuOpen(false);
-                        }}
-                        className={`w-full flex items-center justify-between p-1.5 rounded-lg text-left text-xs transition ${
-                          u.id === currentUser.id
-                            ? 'bg-blue-50 text-blue-900 font-bold'
-                            : 'hover:bg-slate-50 text-slate-800'
-                        }`}
-                      >
-                        <div className="flex items-center gap-2 min-w-0">
-                          <UserAvatar user={u} size="xs" />
-                          <div className="truncate">
-                            <span className="truncate block font-semibold leading-tight">{u.name}</span>
-                            <span className="text-[10px] text-slate-400 block capitalize">
-                              {u.role === 'advocate' ? 'Advocate (RBA)' : u.role}
-                            </span>
-                          </div>
-                        </div>
-                        {u.id === currentUser.id && (
-                          <Check className="w-3.5 h-3.5 text-blue-600 shrink-0 ml-1" />
-                        )}
-                      </button>
-                    ))}
-                  </div>
                 </div>
 
-                <div className="pt-1 border-t border-slate-100 flex items-center justify-between px-1">
-                  <button
-                    onClick={() => {
-                      resetDemoData();
-                      setIsUserMenuOpen(false);
-                    }}
-                    className="text-[10px] text-slate-500 hover:text-slate-800 flex items-center gap-1"
-                  >
-                    <RefreshCw className="w-3 h-3" />
-                    <span>Reset Data</span>
-                  </button>
+                <div className="space-y-1">
                   <button
                     onClick={() => {
                       navigateToProfile(currentUser.id);
                       setIsUserMenuOpen(false);
                     }}
-                    className="text-[10px] text-blue-700 font-bold hover:underline"
+                    className="w-full flex items-center gap-2 p-2 rounded-xl text-left text-xs font-medium text-slate-700 hover:bg-slate-50 transition cursor-pointer"
                   >
-                    View Profile
+                    <UserIcon className="w-4 h-4 text-slate-500" />
+                    <span>View Full Profile</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setActiveView('settings');
+                      setIsUserMenuOpen(false);
+                    }}
+                    className="w-full flex items-center gap-2 p-2 rounded-xl text-left text-xs font-medium text-slate-700 hover:bg-slate-50 transition cursor-pointer"
+                  >
+                    <Shield className="w-4 h-4 text-slate-500" />
+                    <span>Account Settings</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      logout();
+                      setIsUserMenuOpen(false);
+                    }}
+                    className="w-full flex items-center gap-2 p-2 rounded-xl text-left text-xs font-bold text-red-600 hover:bg-red-50 transition cursor-pointer"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    <span>Log Out</span>
                   </button>
                 </div>
               </div>

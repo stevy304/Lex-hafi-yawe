@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   FileText,
   ShieldAlert,
@@ -37,9 +37,8 @@ export const PostComposer: React.FC<PostComposerProps> = ({
   const [legalTopic, setLegalTopic] = useState(defaultTopic || 'General Legal');
   const [audience, setAudience] = useState<'public' | 'followers'>('public');
   const [attachments, setAttachments] = useState<PostAttachment[]>([]);
-  const [isAttachingDoc, setIsAttachingDoc] = useState(false);
-  const [docName, setDocName] = useState('');
   const [hasSavedDraft, setHasSavedDraft] = useState(false);
+  const filePickerRef = useRef<HTMLInputElement>(null);
 
   const MAX_CHARS = 500;
   const remainingChars = MAX_CHARS - content.length;
@@ -84,18 +83,30 @@ export const PostComposer: React.FC<PostComposerProps> = ({
     );
   }
 
-  const handleAddDoc = () => {
-    if (!docName.trim()) return;
-    const newDoc: PostAttachment = {
-      type: 'document',
-      url: `#doc-${encodeURIComponent(docName.trim())}`,
-      name: docName.trim().endsWith('.pdf') ? docName.trim() : `${docName.trim()}.pdf`,
-      fileSize: '1.2 MB',
-      mimeType: 'application/pdf'
+  const handleFilePicked = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const formattedSize = file.size > 1024 * 1024
+      ? `${(file.size / (1024 * 1024)).toFixed(1)} MB`
+      : `${Math.round(file.size / 1024)} KB`;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const newDoc: PostAttachment = {
+        type: file.type.startsWith('image/') ? 'image' : 'document',
+        url: (reader.result as string) || '#',
+        name: file.name,
+        fileSize: formattedSize,
+        mimeType: file.type || 'application/octet-stream'
+      };
+      setAttachments(prev => [...prev, newDoc]);
     };
-    setAttachments(prev => [...prev, newDoc]);
-    setDocName('');
-    setIsAttachingDoc(false);
+    reader.readAsDataURL(file);
+
+    if (filePickerRef.current) {
+      filePickerRef.current.value = '';
+    }
   };
 
   const handleAddStatuteCitation = () => {
@@ -208,51 +219,30 @@ export const PostComposer: React.FC<PostComposerProps> = ({
             </div>
           )}
 
-          {/* Quick Doc Upload Inline Form */}
-          {isAttachingDoc && (
-            <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 p-2 rounded-xl my-2">
-              <FileText className="w-4 h-4 text-blue-600 shrink-0" />
-              <input
-                type="text"
-                placeholder="Document / Circular name (e.g. Ministerial_Order_004_2026.pdf)"
-                value={docName}
-                onChange={e => setDocName(e.target.value)}
-                className="flex-1 text-xs bg-white border border-slate-200 rounded-md px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-600"
-              />
-              <button
-                type="button"
-                onClick={handleAddDoc}
-                className="px-2.5 py-1 bg-blue-700 text-white rounded-md text-xs font-semibold hover:bg-blue-800"
-              >
-                Attach
-              </button>
-              <button
-                type="button"
-                onClick={() => setIsAttachingDoc(false)}
-                className="text-slate-400 hover:text-slate-600"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-          )}
-
           {/* Bottom Toolbar & Publish */}
           <div className="flex flex-wrap items-center justify-between pt-2 border-t border-slate-100 gap-2">
             <div className="flex items-center gap-1.5 text-slate-500">
+              <input
+                type="file"
+                ref={filePickerRef}
+                onChange={handleFilePicked}
+                className="hidden"
+                accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.txt"
+              />
               <button
                 type="button"
-                onClick={() => setIsAttachingDoc(true)}
+                onClick={() => filePickerRef.current?.click()}
                 title="Attach Document / PDF"
-                className="p-1.5 hover:bg-blue-50 hover:text-blue-700 rounded-lg transition flex items-center gap-1 text-2xs font-semibold"
+                className="p-1.5 hover:bg-blue-50 hover:text-blue-700 rounded-lg transition flex items-center gap-1 text-2xs font-semibold cursor-pointer"
               >
                 <Paperclip className="w-3.5 h-3.5 text-blue-600" />
-                <span className="hidden sm:inline">Attach Doc</span>
+                <span className="hidden sm:inline">Attach File/Doc</span>
               </button>
               <button
                 type="button"
                 onClick={handleAddStatuteCitation}
                 title="Add Statutory Citation"
-                className="p-1.5 hover:bg-blue-50 hover:text-blue-700 rounded-lg transition flex items-center gap-1 text-2xs font-semibold"
+                className="p-1.5 hover:bg-blue-50 hover:text-blue-700 rounded-lg transition flex items-center gap-1 text-2xs font-semibold cursor-pointer"
               >
                 <BookOpen className="w-3.5 h-3.5 text-blue-600" />
                 <span className="hidden sm:inline">Cite Law</span>
@@ -261,7 +251,7 @@ export const PostComposer: React.FC<PostComposerProps> = ({
                 type="button"
                 onClick={handleSaveDraft}
                 title={t.btnSaveDraft}
-                className="p-1.5 hover:bg-slate-100 hover:text-slate-800 rounded-lg transition text-2xs font-medium flex items-center gap-1"
+                className="p-1.5 hover:bg-slate-100 hover:text-slate-800 rounded-lg transition text-2xs font-medium flex items-center gap-1 cursor-pointer"
               >
                 <BookmarkCheck className="w-3.5 h-3.5" />
                 {hasSavedDraft && <span className="text-2xs text-emerald-600 font-bold">Saved!</span>}

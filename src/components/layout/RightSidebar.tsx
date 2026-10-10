@@ -8,6 +8,7 @@ import { VerificationBadge } from '../common/VerificationBadge';
 export const RightSidebar: React.FC = () => {
   const {
     users,
+    posts,
     currentUser,
     toggleFollowUser,
     navigateToProfile,
@@ -25,14 +26,25 @@ export const RightSidebar: React.FC = () => {
     .filter(u => u.role === 'advocate' && u.id !== currentUser?.id)
     .slice(0, 3);
 
-  // Trending topics
-  const trendingTopics = [
-    { tag: 'LandLawRevision2025', count: '1.4k posts', category: 'Property Conveyancing' },
-    { tag: 'AbunziMediation', count: '890 posts', category: 'Alternative Dispute Resolution' },
-    { tag: 'LaborRightsRwanda', count: '740 posts', category: 'Employment Contracts' },
-    { tag: 'IECMSEfiling', count: '620 posts', category: 'Judiciary E-Court' },
-    { tag: 'DataProtectionRwanda', count: '450 posts', category: 'Law N° 058/2021' }
+  // Real topics derived dynamically from discussions and statutory categories
+  const foundationalTopicTags = [
+    { tag: 'LandLawRevision2025', category: 'Property Conveyancing' },
+    { tag: 'AbunziMediation', category: 'Alternative Dispute Resolution' },
+    { tag: 'LaborRightsRwanda', category: 'Employment Contracts' },
+    { tag: 'IECMSEfiling', category: 'Judiciary E-Court' },
+    { tag: 'DataProtectionRwanda', category: 'Law N° 058/2021' }
   ];
+
+  const trendingTopics = foundationalTopicTags.map(topic => {
+    const postCount = posts.filter(p =>
+      p.tags?.some(t => t.toLowerCase() === topic.tag.toLowerCase()) ||
+      p.content?.toLowerCase().includes(topic.tag.toLowerCase())
+    ).length;
+    return {
+      ...topic,
+      countLabel: postCount > 0 ? `${postCount} ${postCount === 1 ? 'post' : 'posts'}` : 'Statutory Topic'
+    };
+  });
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -111,8 +123,8 @@ export const RightSidebar: React.FC = () => {
                 <span className="text-[11px] text-slate-500 font-medium">
                   {item.category}
                 </span>
-                <span className="text-[10px] text-slate-400">
-                  {item.count}
+                <span className="text-[10px] text-slate-400 font-medium">
+                  {item.countLabel}
                 </span>
               </div>
               <p className="text-xs font-bold text-slate-800 group-hover:text-blue-700 transition">
@@ -140,46 +152,60 @@ export const RightSidebar: React.FC = () => {
           </button>
         </div>
 
-        <div className="space-y-3">
-          {suggestedAdvocates.map(advocate => (
-            <div key={advocate.id} className="flex items-start justify-between gap-2">
-              <button
-                onClick={() => navigateToProfile(advocate.id)}
-                className="flex items-start gap-2 text-left group min-w-0"
-              >
-                <UserAvatar user={advocate} size="sm" />
-                <div className="min-w-0">
-                  <div className="flex items-center gap-1">
-                    <span className="text-xs font-bold text-slate-900 group-hover:text-blue-700 truncate block">
-                      {advocate.name}
+        {suggestedAdvocates.length === 0 ? (
+          <div className="p-3 bg-white rounded-xl border border-slate-200/80 text-center">
+            <p className="text-2xs text-slate-500 leading-relaxed">
+              No registered advocates available yet. Practitioners registered with the Rwanda Bar Association will be featured here upon certification.
+            </p>
+            <button
+              onClick={() => setActiveView('services')}
+              className="mt-2 text-[11px] font-bold text-blue-700 hover:underline inline-block"
+            >
+              Browse Legal Services
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {suggestedAdvocates.map(advocate => (
+              <div key={advocate.id} className="flex items-start justify-between gap-2">
+                <button
+                  onClick={() => navigateToProfile(advocate.id)}
+                  className="flex items-start gap-2 text-left group min-w-0"
+                >
+                  <UserAvatar user={advocate} size="sm" />
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1">
+                      <span className="text-xs font-bold text-slate-900 group-hover:text-blue-700 truncate block">
+                        {advocate.name}
+                      </span>
+                      <VerificationBadge user={advocate} size="sm" />
+                    </div>
+                    <span className="text-[11px] text-slate-500 block truncate">
+                      {advocate.firmName || advocate.professionalTitle}
                     </span>
-                    <VerificationBadge user={advocate} size="sm" />
+                    <span className="text-[10px] text-blue-600 font-semibold block">
+                      {advocate.barRollNumber}
+                    </span>
                   </div>
-                  <span className="text-[11px] text-slate-500 block truncate">
-                    {advocate.firmName || advocate.professionalTitle}
-                  </span>
-                  <span className="text-[10px] text-blue-600 font-semibold block">
-                    {advocate.barRollNumber}
-                  </span>
-                </div>
-              </button>
+                </button>
 
-              <button
-                onClick={() => {
-                  if (!currentUser) openLoginModal();
-                  else toggleFollowUser(advocate.id);
-                }}
-                className={`px-3 py-1 text-2xs font-bold rounded-full transition shrink-0 cursor-pointer ${
-                  currentUser?.followingIds?.includes(advocate.id)
-                    ? 'bg-slate-200 text-slate-800 hover:bg-slate-300'
-                    : 'bg-[#102744] hover:bg-slate-800 text-white'
-                }`}
-              >
-                {currentUser?.followingIds?.includes(advocate.id) ? 'Following' : t.btnFollow}
-              </button>
-            </div>
-          ))}
-        </div>
+                <button
+                  onClick={() => {
+                    if (!currentUser) openLoginModal();
+                    else toggleFollowUser(advocate.id);
+                  }}
+                  className={`px-3 py-1 text-2xs font-bold rounded-full transition shrink-0 cursor-pointer ${
+                    currentUser?.followingIds?.includes(advocate.id)
+                      ? 'bg-slate-200 text-slate-800 hover:bg-slate-300'
+                      : 'bg-[#102744] hover:bg-slate-800 text-white'
+                  }`}
+                >
+                  {currentUser?.followingIds?.includes(advocate.id) ? 'Following' : t.btnFollow}
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Footer Info */}

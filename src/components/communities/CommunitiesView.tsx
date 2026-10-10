@@ -203,8 +203,13 @@ export const CommunitiesView: React.FC = () => {
               Community Discussions ({communityPosts.length})
             </h3>
             {communityPosts.length === 0 ? (
-              <div className="p-8 text-center bg-white rounded-xl border border-slate-200 text-xs text-slate-500">
-                No discussions in this forum yet. Be the first to share an insight!
+              <div className="p-8 text-center bg-white rounded-2xl border border-slate-200/90 space-y-2 shadow-xs">
+                <p className="text-xs font-bold text-slate-800">
+                  No discussions opened in this forum yet.
+                </p>
+                <p className="text-2xs text-slate-500 max-w-sm mx-auto leading-relaxed">
+                  Be the first to share an analysis or question regarding {activeCommunity.topic}. Use the composer above to start the discussion under community guidelines.
+                </p>
               </div>
             ) : (
               communityPosts.map(p => <PostCard key={p.id} post={p} />)

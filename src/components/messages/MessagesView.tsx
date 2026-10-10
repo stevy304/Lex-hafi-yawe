@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   Send,
   FileText,
@@ -38,6 +38,7 @@ export const MessagesView: React.FC = () => {
   const [messageText, setMessageText] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [isNewChatModalOpen, setIsNewChatModalOpen] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   if (!currentUser) {
     return (
@@ -86,22 +87,35 @@ export const MessagesView: React.FC = () => {
     setMessageText('');
   };
 
-  const handleSendSampleDocument = () => {
-    if (!currentConvId) return;
-    sendMessage(
-      currentConvId,
-      'Sharing requested document for our case review.',
-      {
-        type: 'document',
-        url: '#land-upi-certificate',
-        name: 'Land_UPI_Registration_Certificate.pdf'
-      }
-    );
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !currentConvId) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      sendMessage(
+        currentConvId,
+        `Shared document: ${file.name}`,
+        {
+          type: 'document',
+          url: (reader.result as string) || '#',
+          name: file.name
+        }
+      );
+    };
+    reader.readAsDataURL(file);
+
+    // Reset input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
-  const handleStartNewChatWith = (targetUserId: string) => {
-    const convId = startOrGetConversationWithUser(targetUserId);
-    setActiveConversationId(convId);
+  const handleStartNewChatWith = async (targetUserId: string) => {
+    const convId = await startOrGetConversationWithUser(targetUserId);
+    if (convId) {
+      setActiveConversationId(convId);
+    }
     setIsNewChatModalOpen(false);
   };
 
@@ -313,9 +327,16 @@ export const MessagesView: React.FC = () => {
               onSubmit={handleSend}
               className="p-3 bg-white border-t border-slate-200 flex items-center gap-2"
             >
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileChange}
+                className="hidden"
+                accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.txt"
+              />
               <button
                 type="button"
-                onClick={handleSendSampleDocument}
+                onClick={() => fileInputRef.current?.click()}
                 title="Attach confidential document"
                 className="p-2 text-slate-500 hover:text-blue-700 hover:bg-slate-100 rounded-xl transition cursor-pointer"
               >

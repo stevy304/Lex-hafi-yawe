@@ -59,12 +59,12 @@ export const LegalServicesView: React.FC = () => {
     return matchesArea && matchesProvince && matchesSearch;
   });
 
-  const handleMessageProvider = (providerId: string) => {
+  const handleMessageProvider = async (providerId: string) => {
     if (!currentUser) {
       openLoginModal();
       return;
     }
-    startOrGetConversationWithUser(providerId);
+    await startOrGetConversationWithUser(providerId);
     setActiveView('messages');
   };
 
@@ -127,7 +127,48 @@ export const LegalServicesView: React.FC = () => {
 
       {/* Services Grid */}
       <div className="p-4 sm:p-6 space-y-4 max-w-4xl">
-        {filteredServices.length === 0 ? (
+        {legalServices.length === 0 ? (
+          <div className="bg-white rounded-3xl border border-slate-200/90 p-8 text-center space-y-4 shadow-xs">
+            <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-700 flex items-center justify-center mx-auto">
+              <Briefcase className="w-6 h-6" />
+            </div>
+            <div>
+              <h3 className="text-base font-extrabold text-slate-900">
+                Legal Practice Marketplace
+              </h3>
+              <p className="text-xs text-slate-600 max-w-md mx-auto mt-1 leading-relaxed">
+                No private advocate retainers have been listed yet. Licensed members of the Rwanda Bar Association can publish their practice areas, fixed consultation fees, and advisory offerings.
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-center justify-center gap-2.5 pt-2">
+              <button
+                type="button"
+                onClick={() => setActiveView('legalaid')}
+                className="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold rounded-xl transition shadow-xs cursor-pointer"
+              >
+                Find Free Legal Aid (MAJ)
+              </button>
+              {currentUser?.role === 'advocate' ? (
+                <button
+                  type="button"
+                  onClick={() => navigateToProfile(currentUser.id)}
+                  className="px-4 py-2 bg-blue-700 hover:bg-blue-800 text-white text-xs font-bold rounded-xl transition shadow-xs cursor-pointer"
+                >
+                  Publish Service from Profile
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setActiveView('laws')}
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold rounded-xl transition cursor-pointer"
+                >
+                  Consult Statutory Laws
+                </button>
+              )}
+            </div>
+          </div>
+        ) : filteredServices.length === 0 ? (
           <div className="text-center py-12 bg-white rounded-2xl border border-slate-200 p-6">
             <p className="text-xs text-slate-500">
               No legal services matching your filter criteria. Try clearing search filters.
@@ -165,12 +206,23 @@ export const LegalServicesView: React.FC = () => {
                         {provider.firmName} • {provider.barRollNumber}
                       </p>
                       <div className="flex items-center gap-2 mt-0.5 text-2xs text-slate-500">
-                        <span className="flex items-center gap-0.5 text-amber-600 font-bold">
-                          <Star className="w-3 h-3 fill-amber-500 text-amber-500" />
-                          <span>{service.rating}</span>
-                        </span>
-                        <span>({service.reviewsCount} verified clients)</span>
-                        <span>•</span>
+                        {service.reviewsCount && service.reviewsCount > 0 ? (
+                          <>
+                            <span className="flex items-center gap-0.5 text-amber-600 font-bold">
+                              <Star className="w-3 h-3 fill-amber-500 text-amber-500" />
+                              <span>{service.rating}</span>
+                            </span>
+                            <span>({service.reviewsCount} verified clients)</span>
+                            <span>•</span>
+                          </>
+                        ) : (
+                          <>
+                            <span className="text-2xs text-blue-700 font-semibold bg-blue-50 px-1.5 py-0.5 rounded">
+                              Bar Verified Counsel
+                            </span>
+                            <span>•</span>
+                          </>
+                        )}
                         <span className="flex items-center gap-0.5">
                           <MapPin className="w-3 h-3" />
                           <span>{service.locationProvince}</span>

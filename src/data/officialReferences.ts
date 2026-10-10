@@ -1,0 +1,348 @@
+import { LawDocument, LegalAidProvider, Community } from '../types';
+
+export const OFFICIAL_LAWS: LawDocument[] = [
+  {
+    id: 'law-66-2018',
+    title: 'Law N° 66/2018 of 30/08/2018 Regulating Labor in Rwanda',
+    titleKinyarwanda: 'Itegeko N° 66/2018 ryo kuwa 30/08/2018 Rigenga Umurimo mu Rwanda',
+    lawNumber: 'Law N° 66/2018',
+    officialGazetteNumber: 'Special of 30/08/2018',
+    effectiveDate: '2018-08-30',
+    category: 'Labor',
+    sourceInstitution: 'Parliament of Rwanda / Ministry of Public Service and Labor (MIFOTRA)',
+    summaryEn: 'Governs employment relations, probation contracts, dismissal procedures, leave entitlements, minimum working conditions, and occupational safety in Rwanda.',
+    summaryRw: 'Rigenga imibanire y\'umurimo, amasezerano yo kwinjizwa mu kazi, kwirukanwa, konji ziteganywa n\'amategeko, n\'umutekano w\'abakozi mu Rwanda.',
+    keyArticles: [
+      {
+        articleNumber: 'Article 18',
+        heading: 'Probationary Contract',
+        description: 'Probation period cannot exceed six (6) months. Termination requires fifteen (15) days notice if probation exceeds 3 months, or 7 days if less.'
+      },
+      {
+        articleNumber: 'Article 26',
+        heading: 'Dismissal on Grounds of Misconduct',
+        description: 'Requires prior written warning and hearing. Gross misconduct justifies immediate dismissal under strict statutory criteria.'
+      },
+      {
+        articleNumber: 'Article 31',
+        heading: 'Severance Allowance (Indemnité de licenciement)',
+        description: 'Statutory calculation of severance pay based on years of continuous service when dismissal is not caused by gross negligence.'
+      },
+      {
+        articleNumber: 'Article 56',
+        heading: 'Maternity Leave',
+        description: 'Grants twelve (12) consecutive weeks of maternity leave with remuneration under RSSB maternity fund scheme.'
+      }
+    ],
+    pdfUrl: 'https://mifotra.gov.rw/laws/labor-law-66-2018.pdf',
+    isCurrent: true
+  },
+  {
+    id: 'law-027-2021',
+    title: 'Law N° 027/2021 of 10/06/2021 Governing Land in Rwanda',
+    titleKinyarwanda: 'Itegeko N° 027/2021 ryo kuwa 10/06/2021 Rigenga Ubutaka mu Rwanda',
+    lawNumber: 'Law N° 027/2021',
+    officialGazetteNumber: 'N° Special of 10/06/2021',
+    effectiveDate: '2021-06-10',
+    category: 'Land & Property',
+    sourceInstitution: 'Rwanda Land Management and Use Authority (RLMUA)',
+    summaryEn: 'Comprehensive framework governing land tenure, leasehold rights, title registration (UPI), parcel subdivision, transfers, and expropriation in the public interest.',
+    summaryRw: 'Rigenga uburenganzira ku butaka, ihererekanya ry\'ubutaka (UPI), igabana ry\'ibibanza, no kwimura abantu ku mpamvu z\'inyungu rusange.',
+    keyArticles: [
+      {
+        articleNumber: 'Article 12',
+        heading: 'Land Registration & Title Deeds',
+        description: 'All land in Rwanda must be registered and issued a Unique Parcel Identifier (UPI) through the national cadastre.'
+      },
+      {
+        articleNumber: 'Article 19',
+        heading: 'Spousal Consent in Land Transactions',
+        description: 'Any transfer, mortgage, or lease of matrimonial land requires notarized mutual consent of both spouses under applicable marital property regime.'
+      },
+      {
+        articleNumber: 'Article 34',
+        heading: 'Subdivision of Agricultural Land',
+        description: 'Prohibits subdivision of agricultural parcels below one (1) hectare to safeguard food security, unless specialized zoning permits.'
+      }
+    ],
+    pdfUrl: 'https://environment.gov.rw/laws/land-law-2021.pdf',
+    isCurrent: true
+  },
+  {
+    id: 'law-007-2021',
+    title: 'Law N° 007/2021 of 05/02/2021 Governing Companies in Rwanda',
+    titleKinyarwanda: 'Itegeko N° 007/2021 ryo kuwa 05/02/2021 Rigenga Amasosiyete y\'Ubucuruzi',
+    lawNumber: 'Law N° 007/2021',
+    officialGazetteNumber: 'N° 04 bis of 08/02/2021',
+    effectiveDate: '2021-02-08',
+    category: 'Commercial & Companies',
+    sourceInstitution: 'Rwanda Development Board (RDB) / Registrar General',
+    summaryEn: 'Governs incorporation of domestic and foreign companies, digital registration via RDB portal, corporate governance, shareholder agreements, and dissolution.',
+    summaryRw: 'Rigenga ishyirwaho ry\'amasosiyete y\'ubucuruzi, iyandikwa ryayo binyuze muri RDB, inshingano z\'abayobozi n\'abanyamigabane.',
+    keyArticles: [
+      {
+        articleNumber: 'Article 14',
+        heading: 'Online Company Incorporation',
+        description: 'Establishes full legal validity of electronic certificates of incorporation issued by the Registrar General at RDB.'
+      },
+      {
+        articleNumber: 'Article 92',
+        heading: 'Duties and Liabilities of Directors',
+        description: 'Directors owe fiduciary duties of good faith, care, and avoidance of conflicts of interest to the company and stakeholders.'
+      },
+      {
+        articleNumber: 'Article 248',
+        heading: 'Recognition of Foreign Corporate Documents (Apostille)',
+        description: 'Documents legalized via the Apostille Convention are recognized without consular re-authentication.'
+      }
+    ],
+    pdfUrl: 'https://rdb.rw/laws/company-law-2021.pdf',
+    isCurrent: true
+  },
+  {
+    id: 'law-058-2021',
+    title: 'Law N° 058/2021 of 13/10/2021 Relating to the Protection of Personal Data and Privacy',
+    titleKinyarwanda: 'Itegeko N° 058/2021 ryo kuwa 13/10/2021 Ryerekeye Kurengera Amakuru Bwite n\'Ubuzima Bwite',
+    lawNumber: 'Law N° 058/2021',
+    officialGazetteNumber: 'N° Special of 15/10/2021',
+    effectiveDate: '2021-10-15',
+    category: 'Data Protection & Tech',
+    sourceInstitution: 'National Cyber Security Authority (NCSA)',
+    summaryEn: 'Establishes rights of data subjects, legal grounds for processing personal data, requirements for data protection officers, and cross-border data transfer rules.',
+    summaryRw: 'Rigena uburenganzira bw\'umuturage ku makuru ye bwite, ibisabwa mu kubika amakuru, n\'inshingano z\'amasosiyete akora ku makuru.',
+    keyArticles: [
+      {
+        articleNumber: 'Article 18',
+        heading: 'Principles of Data Processing',
+        description: 'Personal data must be collected lawfully, transparently, for specified legitimate purposes, and kept accurate.'
+      },
+      {
+        articleNumber: 'Article 48',
+        heading: 'Cross-Border Transfer Safeguards',
+        description: 'Personal data may not be transferred outside Rwanda unless adequate protection or authorization from NCSA is proven.'
+      }
+    ],
+    pdfUrl: 'https://ncsa.gov.rw/laws/data-protection-law-2021.pdf',
+    isCurrent: true
+  },
+  {
+    id: 'law-68-2018',
+    title: 'Law N° 68/2018 of 30/08/2018 Determining Offences and Penalties in General',
+    titleKinyarwanda: 'Itegeko N° 68/2018 ryo kuwa 30/08/2018 Riteganya Ibyaha n\'Ibihano muri Rusange',
+    lawNumber: 'Law N° 68/2018',
+    officialGazetteNumber: 'Special of 27/09/2018',
+    effectiveDate: '2018-09-27',
+    category: 'Criminal',
+    sourceInstitution: 'Ministry of Justice (MINIJUST) / Judiciary of Rwanda',
+    summaryEn: 'General penal code of Rwanda outlining criminal offences, penalties, circumstances of aggravation or mitigation, and rights of defense under due process.',
+    summaryRw: 'Itegeko ngenga rihana ibyaha muri rusange, rigena ibihano, n\'uburenganzira bw\'uregwa bwo kwiregura mu rukiko.',
+    keyArticles: [
+      {
+        articleNumber: 'Article 29',
+        heading: 'Presumption of Innocence',
+        description: 'Any person charged with a criminal offence is presumed innocent until proven guilty according to law in a public hearing.'
+      },
+      {
+        articleNumber: 'Article 174',
+        heading: 'Fraud by Deception and Misrepresentation',
+        description: 'Determines penal sanctions for financial fraud, forgery of public instruments, or unauthorized representation.'
+      }
+    ],
+    pdfUrl: 'https://minijust.gov.rw/laws/penal-code-2018.pdf',
+    isCurrent: true
+  }
+];
+
+export const OFFICIAL_LEGAL_AID_PROVIDERS: LegalAidProvider[] = [
+  {
+    id: 'aid_maj_gasabo',
+    name: "Maison d'Accès à la Justice (MAJ) - Gasabo District",
+    type: 'maj_bureau',
+    district: 'Gasabo',
+    province: 'Kigali City',
+    address: 'Gasabo District Administration Office, Remera / Kacyiru, Kigali',
+    phone: '+250 788 380 441',
+    email: 'gasabo.maj@minijust.gov.rw',
+    servicesOffered: [
+      'Free legal orientation and advisory to citizens',
+      'Mediation of civil and property conflicts (Abunzi support)',
+      'Assistance to victims of Gender-Based Violence (GBV)',
+      'Drafting court petitions for indigent individuals'
+    ],
+    eligibilityCriteria: [
+      'All Rwandan citizens and residents residing in Gasabo District',
+      'Priority to indigent persons (Ubudehe category 1 and 2), women, and persons with disabilities'
+    ],
+    requiredDocuments: ['National ID card', 'Ubudehe certification (if seeking court representation support)'],
+    operatingHours: 'Mon - Fri: 07:00 - 17:00 (Walk-in advisory Tue & Thu)',
+    isFreeOfCharge: true,
+    officialSource: 'Ministry of Justice (MINIJUST)',
+    lastVerifiedDate: 'October 2026'
+  },
+  {
+    id: 'aid_maj_nyarugenge',
+    name: "Maison d'Accès à la Justice (MAJ) - Nyarugenge District",
+    type: 'maj_bureau',
+    district: 'Nyarugenge',
+    province: 'Kigali City',
+    address: 'Nyarugenge District Office, Nyamirambo, Kigali',
+    phone: '+250 788 380 442',
+    email: 'nyarugenge.maj@minijust.gov.rw',
+    servicesOffered: [
+      'General legal assistance and counseling',
+      'Labor conflict advisory and mediation referrals',
+      'Land conflict amicable resolution support',
+      'Child support and custody guidance'
+    ],
+    eligibilityCriteria: ['Residents of Nyarugenge District; free access without discrimination'],
+    requiredDocuments: ['National ID card', 'Relevant letters or summons'],
+    operatingHours: 'Mon - Fri: 07:00 - 17:00',
+    isFreeOfCharge: true,
+    officialSource: 'Ministry of Justice (MINIJUST)',
+    lastVerifiedDate: 'September 2026'
+  },
+  {
+    id: 'aid_laf_rwanda',
+    name: 'Legal Aid Forum (LAF) Rwanda',
+    type: 'ngo_clinic',
+    district: 'Kicukiro',
+    province: 'Kigali City',
+    address: 'Kanombe, Kicukiro, KK 31 Ave, Kigali',
+    phone: '+250 788 300 234 / Toll-Free: 8435',
+    email: 'info@legalaidrwanda.org',
+    servicesOffered: [
+      'Pro bono legal representation in courts for vulnerable citizens',
+      'National toll-free legal advice hotline (8435)',
+      'Refugee legal aid programs',
+      'Legal literacy workshops and publications'
+    ],
+    eligibilityCriteria: [
+      'Vulnerable citizens unable to afford private advocates',
+      'Refugees, displaced persons, and minors'
+    ],
+    requiredDocuments: ['Proof of indigence / Ubudehe level', 'Court case number if pending'],
+    operatingHours: 'Mon - Fri: 08:00 - 17:00',
+    isFreeOfCharge: true,
+    officialSource: 'Civil Society Coalition / LAF Secretariat',
+    lastVerifiedDate: 'August 2026'
+  },
+  {
+    id: 'aid_haguruka',
+    name: 'Haguruka NGO - Rights of Women and Children',
+    type: 'ngo_clinic',
+    district: 'Gasabo',
+    province: 'Kigali City',
+    address: 'KG 562 St, Kacyiru, Kigali',
+    phone: '+250 788 300 355 / Toll-free: 3456',
+    email: 'info@haguruka.org.rw',
+    servicesOffered: [
+      'Legal defense for survivors of gender-based violence',
+      'Matrimonial property division counseling',
+      'Child maintenance and paternity litigation',
+      'Psychosocial and legal counseling'
+    ],
+    eligibilityCriteria: ['Women, children, and vulnerable families in domestic disputes'],
+    requiredDocuments: ['Identity card', 'Marriage certificate or birth certificate if available'],
+    operatingHours: 'Mon - Fri: 08:00 - 17:00',
+    isFreeOfCharge: true,
+    officialSource: 'Haguruka Association',
+    lastVerifiedDate: 'September 2026'
+  },
+  {
+    id: 'aid_ur_clinic',
+    name: 'University of Rwanda Legal Aid Clinic',
+    type: 'university_clinic',
+    district: 'Huye',
+    province: 'Southern Province',
+    address: 'UR Huye Campus, Faculty of Law, Huye',
+    phone: '+250 252 530 200',
+    email: 'legalclinic@ur.ac.rw',
+    servicesOffered: [
+      'Supervised law student advisory to local community',
+      'Prison outreach and pre-trial rights awareness in Southern Province',
+      'Drafting amicable settlement frameworks'
+    ],
+    eligibilityCriteria: ['Open to low-income residents in Huye and neighboring districts'],
+    requiredDocuments: ['National ID'],
+    operatingHours: 'Academic semesters: Mon - Fri: 09:00 - 16:00',
+    isFreeOfCharge: true,
+    officialSource: 'University of Rwanda Faculty of Law',
+    lastVerifiedDate: 'July 2026'
+  }
+];
+
+export const FOUNDATIONAL_COMMUNITIES: Community[] = [
+  {
+    id: 'comm_land_rwanda',
+    name: 'Rwanda Land & Property Law Forum',
+    kigaliName: "Iby'Ubutaka n'Umutungo mu Rwanda",
+    slug: 'land-property-rwanda',
+    description: 'Public legal discussion on Law N° 027/2021 governing land in Rwanda, title transfers, parcel subdivision, expropriation in the public interest, and dispute prevention.',
+    bannerGradient: 'from-[#064E3B] via-[#047857] to-[#022C22]',
+    icon: 'Landmark',
+    membersCount: 0,
+    joinedBy: [],
+    topic: 'Land & Property',
+    rules: [
+      'Do not publish confidential land title UPI documents belonging to third parties without consent.',
+      'General legal education only; does not replace private solicitor representation.',
+      'Respectful civic discussion adhering to Rwandan legal standards.'
+    ],
+    officialSource: 'Rwanda Land Management and Use Authority (RLMUA)',
+    moderatorId: 'admin_lex_hafi'
+  },
+  {
+    id: 'comm_labor_rwanda',
+    name: 'Labor Rights & Workplace Fairness',
+    kigaliName: "Uburenganzira bw'Abakozi n'Abakoresha",
+    slug: 'labor-workplace-rwanda',
+    description: 'Guidance and peer discussions regarding employment contracts, termination, severance pay, occupational health, and maternity leave benefits under Rwandan Labor Law.',
+    bannerGradient: 'from-[#1E3A8A] via-[#1D4ED8] to-[#172554]',
+    icon: 'Briefcase',
+    membersCount: 0,
+    joinedBy: [],
+    topic: 'Labor & Employment',
+    rules: [
+      'Discussions must cite relevant articles of Law N° 66/2018 where applicable.',
+      'Naming specific ongoing confidential labor tribunal parties is strictly prohibited.'
+    ],
+    officialSource: 'Ministry of Public Service and Labor (MIFOTRA)',
+    moderatorId: 'admin_lex_hafi'
+  },
+  {
+    id: 'comm_business_rwanda',
+    name: 'Startup & Business Compliance Rwanda',
+    kigaliName: "Amategeko y'Ubucuruzi n'Isosiyete",
+    slug: 'business-compliance-rwanda',
+    description: 'Navigating RDB company registration, shareholder agreements, Rwanda Revenue Authority tax procedures, commercial lease agreements, and intellectual property.',
+    bannerGradient: 'from-[#312E81] via-[#4338CA] to-[#1E1B4B]',
+    icon: 'Building2',
+    membersCount: 0,
+    joinedBy: [],
+    topic: 'Commercial & Companies',
+    rules: [
+      'Share actionable insights on RDB filing, corporate governance, and contracts.',
+      'No unsolicited spam or non-legal commercial advertising.'
+    ],
+    officialSource: 'Rwanda Development Board (RDB)',
+    moderatorId: 'admin_lex_hafi'
+  },
+  {
+    id: 'comm_family_succession',
+    name: 'Family, Matrimonial & Succession Law',
+    kigaliName: "Amategeko y'Umuryango n'Izungura",
+    slug: 'family-succession-rwanda',
+    description: 'Understanding matrimonial regimes (community of property, limited community, separation of property) and succession rules under Law N° 32/2016.',
+    bannerGradient: 'from-[#701A75] via-[#86198F] to-[#4A044E]',
+    icon: 'HeartHandshake',
+    membersCount: 0,
+    joinedBy: [],
+    topic: 'Family & Succession',
+    rules: [
+      'Maintain utmost confidentiality regarding family and juvenile matters.',
+      'Reference relevant succession statutory guidelines in civil law.'
+    ],
+    officialSource: 'Ministry of Justice (MINIJUST)',
+    moderatorId: 'admin_lex_hafi'
+  }
+];

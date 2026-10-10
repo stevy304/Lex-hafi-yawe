@@ -92,32 +92,6 @@ export const SettingsView: React.FC = () => {
                   <span>Log Out</span>
                 </button>
               </div>
-
-              <div className="pt-2 border-t border-slate-100">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1.5">
-                  Switch Persona / Test Role
-                </span>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {users.slice(0, 4).map(u => (
-                    <button
-                      key={u.id}
-                      type="button"
-                      onClick={() => setCurrentUser(u)}
-                      className={`p-2 rounded-xl border text-left text-xs transition flex items-center justify-between ${
-                        u.id === currentUser.id
-                          ? 'border-blue-700 bg-blue-50/70 text-blue-900 font-bold'
-                          : 'border-slate-200 hover:bg-slate-50 text-slate-700'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2 truncate">
-                        <UserAvatar user={u} size="xs" />
-                        <span className="truncate">{u.name}</span>
-                      </div>
-                      {u.id === currentUser.id && <Check className="w-3.5 h-3.5 text-blue-700" />}
-                    </button>
-                  ))}
-                </div>
-              </div>
             </div>
           ) : (
             <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-center space-y-2">
@@ -176,28 +150,11 @@ export const SettingsView: React.FC = () => {
             <span>Privacy & Advocate Privilege</span>
           </h3>
           <p className="text-xs text-slate-600 leading-relaxed">
-            All private conversations and appointments on Lex Hafi Yawe are governed by Law N° 058/2021 relating to the Protection of Personal Data and Privacy. Client-advocate privilege is strictly preserved.
+            All private communications and appointment requests on Lex Hafi Yawe are governed by Law N° 058/2021 relating to the Protection of Personal Data and Privacy. Client-advocate privilege is strictly maintained.
           </p>
           <div className="text-2xs text-slate-500 bg-slate-50 p-2.5 rounded-xl border border-slate-100">
-            Current account security level: <strong>Enterprise Law Society Tier (Encrypted)</strong>
+            Account security status: <strong>Cryptographically Authenticated Bearer Session</strong>
           </div>
-        </div>
-
-        {/* Demo reset */}
-        <div className="bg-white border border-slate-200 rounded-2xl p-4 sm:p-5 shadow-xs flex items-center justify-between">
-          <div>
-            <h4 className="text-xs font-bold text-slate-900">Reset Demo Data</h4>
-            <p className="text-2xs text-slate-500">
-              Restore initial seed posts, verified advocates, and consultations.
-            </p>
-          </div>
-          <button
-            onClick={resetDemoData}
-            className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold rounded-xl transition flex items-center gap-1.5 cursor-pointer"
-          >
-            <RefreshCw className="w-3.5 h-3.5" />
-            <span>Reset Data</span>
-          </button>
         </div>
       </div>
     </div>

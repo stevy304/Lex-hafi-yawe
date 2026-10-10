@@ -39,7 +39,8 @@ export const ProfileView: React.FC = () => {
     startOrGetConversationWithUser,
     updateCurrentUserProfile,
     openLoginModal,
-    logout
+    logout,
+    setIsCreatePostModalOpen
   } = useApp();
 
   const [activeTab, setActiveTab] = useState<'posts' | 'replies' | 'services' | 'saved'>('posts');
@@ -92,12 +93,12 @@ export const ProfileView: React.FC = () => {
     setIsEditing(false);
   };
 
-  const handleMessageUser = () => {
+  const handleMessageUser = async () => {
     if (!currentUser) {
       openLoginModal();
       return;
     }
-    const convId = startOrGetConversationWithUser(profileUser.id);
+    await startOrGetConversationWithUser(profileUser.id);
     setActiveView('messages');
   };
 
@@ -414,8 +415,25 @@ export const ProfileView: React.FC = () => {
       <div className="divide-y divide-slate-200">
         {activeTab === 'posts' && (
           userPosts.length === 0 ? (
-            <div className="p-12 text-center text-xs text-slate-500 bg-white">
-              No posts published yet by this user.
+            <div className="p-12 text-center text-xs text-slate-500 bg-white space-y-3">
+              <p className="font-semibold text-slate-700">
+                {isOwnProfile ? 'You haven’t published any posts yet.' : 'No posts published yet by this user.'}
+              </p>
+              <p className="text-2xs text-slate-400 max-w-sm mx-auto leading-relaxed">
+                {isOwnProfile
+                  ? 'Share your legal perspective, ask a statutory question, or publish an article to start conversations.'
+                  : 'When this user publishes legal updates or commentary, they will appear here.'}
+              </p>
+              {isOwnProfile && (
+                <button
+                  type="button"
+                  onClick={() => setIsCreatePostModalOpen(true)}
+                  className="px-4 py-2 bg-blue-700 hover:bg-blue-800 text-white rounded-xl text-xs font-bold transition shadow-xs cursor-pointer inline-flex items-center gap-1.5"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Create First Post</span>
+                </button>
+              )}
             </div>
           ) : (
             userPosts.map(post => <PostCard key={post.id} post={post} />)
@@ -425,7 +443,19 @@ export const ProfileView: React.FC = () => {
         {activeTab === 'services' && (
           <div className="p-4 bg-white space-y-4">
             {userServices.length === 0 ? (
-              <p className="text-xs text-slate-500">No services listed yet.</p>
+              <div className="p-8 text-center text-xs text-slate-500 space-y-2">
+                <p className="font-semibold text-slate-700">No legal services listed yet.</p>
+                {isOwnProfile && profileUser.role === 'advocate' && (
+                  <button
+                    type="button"
+                    onClick={() => setIsNewServiceModalOpen(true)}
+                    className="px-4 py-2 bg-blue-700 hover:bg-blue-800 text-white rounded-xl text-xs font-bold transition shadow-xs cursor-pointer inline-flex items-center gap-1.5 mt-2"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>List Practice Area & Honorarium</span>
+                  </button>
+                )}
+              </div>
             ) : (
               userServices.map(service => (
                 <div

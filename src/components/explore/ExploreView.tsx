@@ -273,8 +273,17 @@ export const ExploreView: React.FC = () => {
               Posts & Discussions ({matchingPosts.length})
             </h3>
             {matchingPosts.length === 0 ? (
-              <div className="p-8 text-center bg-white rounded-xl border border-slate-200 text-xs text-slate-500">
-                No matching posts found.
+              <div className="p-8 text-center bg-white rounded-2xl border border-slate-200/90 text-xs text-slate-500 space-y-2">
+                <p className="font-medium text-slate-700">
+                  {query
+                    ? `No legal discussions found matching "${query}".`
+                    : 'No public discussions published yet on the platform.'}
+                </p>
+                <p className="text-2xs text-slate-400 max-w-sm mx-auto">
+                  {query
+                    ? 'Try searching by law name (e.g. "Labor Law"), practice area (e.g. "Commercial"), or district.'
+                    : 'Be the first to share an analysis or question regarding Rwandan statutory law.'}
+                </p>
               </div>
             ) : (
               matchingPosts.map(p => <PostCard key={p.id} post={p} />)

@@ -70,8 +70,8 @@ export const AppointmentsView: React.FC = () => {
 
   const isAdvocate = currentUser.role === 'advocate';
 
-  const handleMessage = (otherUserId: string) => {
-    startOrGetConversationWithUser(otherUserId);
+  const handleMessage = async (otherUserId: string) => {
+    await startOrGetConversationWithUser(otherUserId);
     setActiveView('messages');
   };
 
@@ -129,11 +129,35 @@ export const AppointmentsView: React.FC = () => {
       {/* Appointments Stream */}
       <div className="p-4 sm:p-6 space-y-4 max-w-4xl">
         {filteredAppointments.length === 0 ? (
-          <div className="text-center py-12 bg-white rounded-2xl border border-slate-200 p-6">
-            <Calendar className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-            <p className="text-xs text-slate-500">
-              No appointments scheduled. Visit Legal Services to book a verified advocate.
-            </p>
+          <div className="bg-white rounded-3xl border border-slate-200/90 p-8 text-center space-y-4 shadow-xs">
+            <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-700 flex items-center justify-center mx-auto">
+              <Calendar className="w-6 h-6" />
+            </div>
+            <div>
+              <h3 className="text-base font-extrabold text-slate-900">
+                No Scheduled Consultations
+              </h3>
+              <p className="text-xs text-slate-600 max-w-md mx-auto mt-1 leading-relaxed">
+                You do not have any pending or completed legal advisory meetings. When you schedule an appointment with a verified advocate, meeting credentials and details will appear here.
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-center justify-center gap-2.5 pt-2">
+              <button
+                type="button"
+                onClick={() => setActiveView('services')}
+                className="px-4 py-2 bg-blue-700 hover:bg-blue-800 text-white text-xs font-bold rounded-xl transition shadow-xs cursor-pointer"
+              >
+                Find an Advocate in Marketplace
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveView('legalaid')}
+                className="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold rounded-xl transition shadow-xs cursor-pointer"
+              >
+                Access Free MAJ Assistance
+              </button>
+            </div>
           </div>
         ) : (
           filteredAppointments.map(apt => {
