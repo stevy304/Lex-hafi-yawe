@@ -588,16 +588,18 @@ class Database {
       const user = this.getUserById(filters.currentUserId);
       const followingIds = user?.followingIds || [];
       list = list.filter(p => followingIds.includes(p.authorId) || p.authorId === filters.currentUserId);
-    } else if (filters?.tab === 'advocates') {
+    } else if (filters?.tab === 'advocates' || filters?.tab === 'professionals') {
       list = list.filter(p => {
         const author = this.getUserById(p.authorId);
-        return author?.role === 'advocate' || author?.verificationType === 'bar_member';
+        return author?.role === 'advocate' || author?.verificationType === 'bar_member' || author?.isVerified;
       });
     } else if (filters?.tab === 'official') {
       list = list.filter(p => {
         const author = this.getUserById(p.authorId);
         return p.isOfficialAnnouncement || author?.role === 'institution' || author?.verificationType === 'official_institution';
       });
+    } else if (filters?.tab === 'communities') {
+      list = list.filter(p => Boolean(p.communityId));
     }
 
     list.sort((a, b) => {
@@ -669,6 +671,10 @@ class Database {
     audience?: 'public' | 'followers';
     communityId?: string;
     quotedPostId?: string;
+    citations?: Post['citations'];
+    documents?: Post['documents'];
+    media?: Post['media'];
+    lang?: Post['lang'];
   }): Post {
     const author = this.getUserById(postData.authorId);
     if (!author) throw new Error('Author not found');
@@ -687,6 +693,10 @@ class Database {
       tags: postData.tags?.length ? postData.tags : ['LegalDiscussion', 'RwandaLaw'],
       audience: postData.audience || 'public',
       attachments: postData.attachments?.length ? postData.attachments : undefined,
+      citations: postData.citations,
+      documents: postData.documents,
+      media: postData.media,
+      lang: postData.lang || 'en',
       likesCount: 0,
       repliesCount: 0,
       repostsCount: 0,

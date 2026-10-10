@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
-import { LeftSidebar } from './LeftSidebar';
-import { RightSidebar } from './RightSidebar';
-import { MobileNav } from './MobileNav';
+import { Sidebar } from '../../app/Sidebar';
+import { RightColumn } from '../../app/RightColumn';
+import { MobileTopBar } from '../../app/MobileTopBar';
+import { BottomNav } from '../../app/BottomNav';
 
 // Views
-import { FeedView } from '../feed/FeedView';
+import { FeedPage } from '../../features/feed/FeedPage';
 import { ExploreView } from '../explore/ExploreView';
 import { NotificationsView } from '../notifications/NotificationsView';
 import { MessagesView } from '../messages/MessagesView';
@@ -31,7 +32,13 @@ import { KeyboardShortcutsModal } from '../common/KeyboardShortcutsModal';
 import { videoManager } from '../../utils/videoPlaybackManager';
 
 export const AppLayout: React.FC = () => {
-  const { activeView, currentUser, openLoginModal, navigateToLanding } = useApp();
+  const {
+    activeView,
+    currentUser,
+    openLoginModal,
+    navigateToLanding,
+    setIsCreatePostModalOpen,
+  } = useApp();
 
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [isShortcutsModalOpen, setIsShortcutsModalOpen] = useState(false);
@@ -39,65 +46,32 @@ export const AppLayout: React.FC = () => {
   // Global Keyboard Shortcuts (⌘K, J/K, M, ?)
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
-      // Check if user is typing in input or textarea
       const target = e.target as HTMLElement;
       const isInput =
         target.tagName === 'INPUT' ||
         target.tagName === 'TEXTAREA' ||
         target.isContentEditable;
 
-      // Command + K or Ctrl + K: Focus right-column search on desktop, command palette on mobile
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault();
         const rightSearch = document.getElementById('right-sidebar-search-input') as HTMLInputElement | null;
-        if (rightSearch && window.innerWidth >= 1024) {
+        if (rightSearch && window.innerWidth >= 1200) {
           rightSearch.focus();
           rightSearch.select();
         } else {
-          setIsCommandPaletteOpen(prev => !prev);
+          setIsCommandPaletteOpen((prev) => !prev);
         }
         return;
       }
 
-      // If user is currently typing in a field, ignore single key shortcuts
       if (isInput) return;
 
       if (e.key === '?') {
         e.preventDefault();
-        setIsShortcutsModalOpen(prev => !prev);
+        setIsShortcutsModalOpen((prev) => !prev);
       } else if (e.key.toLowerCase() === 'm') {
         e.preventDefault();
         videoManager.toggleGlobalMute();
-      } else if (e.key.toLowerCase() === 'j') {
-        // Scroll to next post
-        e.preventDefault();
-        const posts = Array.from(document.querySelectorAll('[data-feed-post-id]'));
-        if (posts.length > 0) {
-          const currentY = window.scrollY;
-          const next = posts.find(el => {
-            const rect = el.getBoundingClientRect();
-            return rect.top > 120; // below header
-          });
-          if (next) {
-            next.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            (next as HTMLElement).focus?.();
-          }
-        }
-      } else if (e.key.toLowerCase() === 'k') {
-        // Scroll to previous post
-        e.preventDefault();
-        const posts = Array.from(document.querySelectorAll('[data-feed-post-id]'));
-        if (posts.length > 0) {
-          const reversed = [...posts].reverse();
-          const prev = reversed.find(el => {
-            const rect = el.getBoundingClientRect();
-            return rect.top < -60;
-          });
-          if (prev) {
-            prev.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            (prev as HTMLElement).focus?.();
-          }
-        }
       }
     };
 
@@ -110,10 +84,28 @@ export const AppLayout: React.FC = () => {
     };
   }, []);
 
+  const handlePostAction = () => {
+    if (activeView === 'feed') {
+      // Focus or expand composer and scroll to top
+      const feedScroller = document.querySelector('[role="feed"]')?.parentElement;
+      if (feedScroller) {
+        feedScroller.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+      const composerInput = document.querySelector<HTMLElement>('[data-composer-input="true"]');
+      if (composerInput) {
+        composerInput.focus();
+      } else {
+        setIsCreatePostModalOpen(true);
+      }
+    } else {
+      setIsCreatePostModalOpen(true);
+    }
+  };
+
   const renderActiveView = () => {
     switch (activeView) {
       case 'feed':
-        return <FeedView />;
+        return <FeedPage />;
       case 'explore':
         return <ExploreView />;
       case 'notifications':
@@ -141,60 +133,33 @@ export const AppLayout: React.FC = () => {
       case 'settings':
         return <SettingsView />;
       default:
-        return <FeedView />;
+        return <FeedPage />;
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#F6F4EF] text-[#334155] flex justify-center overflow-x-hidden">
-      <div className="w-full max-w-[1400px] flex">
-        {/* Left Desktop Column */}
-        <div className="hidden lg:block shrink-0">
-          <LeftSidebar />
-        </div>
+    <div className="min-h-screen md:h-screen md:overflow-hidden bg-[var(--bg)] text-[var(--text)] flex justify-center">
+      <div className="w-full max-w-[1340px] flex h-full">
+        {/* Left Sidebar (>= 960px) */}
+        <Sidebar onPostClick={handlePostAction} />
 
         {/* Center Primary Workspace */}
-        <main className="flex-1 min-w-0 border-r border-[#E3DDD4] bg-white min-h-screen pb-16 lg:pb-0">
-          {/* Mobile Top Header */}
-          <MobileNav onOpenCommandPalette={() => setIsCommandPaletteOpen(true)} />
+        <main className="flex-1 min-w-0 flex flex-col h-full bg-[var(--bg)] pb-[56px] md:pb-0 overflow-hidden">
+          {/* Mobile Top Bar (< 960px) */}
+          <MobileTopBar onOpenSearch={() => setIsCommandPaletteOpen(true)} />
 
-          {/* Guest Mode Notice Banner */}
-          {!currentUser && (
-            <div className="bg-[#45525A] text-white px-4 py-2 flex flex-wrap items-center justify-between gap-2 text-xs border-b border-[#323C42]">
-              <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-[#D36B2E] animate-pulse shrink-0" />
-                <span>
-                  <strong>Guest Mode:</strong> You are exploring public feeds and Rwanda legal resources.
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={openLoginModal}
-                  className="px-2.5 py-1 bg-[#D36B2E] hover:bg-[#B8551E] font-bold text-white rounded-lg transition text-[11px] cursor-pointer"
-                >
-                  Sign In
-                </button>
-                <button
-                  onClick={navigateToLanding}
-                  className="px-2.5 py-1 bg-white/10 hover:bg-white/20 font-semibold text-white/90 rounded-lg transition text-[11px] cursor-pointer"
-                >
-                  Welcome Page
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Active Primary View */}
-          {renderActiveView()}
+          {/* Active View Container */}
+          <div className="flex-1 min-h-0 flex justify-center">
+            {renderActiveView()}
+          </div>
         </main>
 
-        {/* Right Desktop Discovery Column (Hidden in Messages to maximize chat width) */}
-        {activeView !== 'messages' && (
-          <div className="hidden lg:block shrink-0">
-            <RightSidebar />
-          </div>
-        )}
+        {/* Right Desktop Discovery Column (Hidden in Messages or < 1200px) */}
+        {activeView !== 'messages' && <RightColumn />}
       </div>
+
+      {/* Mobile Bottom Navigation Bar (< 960px) */}
+      <BottomNav onPostClick={handlePostAction} />
 
       {/* Global Interactive Modals */}
       <PostDetailModal />
@@ -213,3 +178,4 @@ export const AppLayout: React.FC = () => {
     </div>
   );
 };
+

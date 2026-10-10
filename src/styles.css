@@ -3,6 +3,14 @@
   --btn-bg:#fff;--btn-text:#0F1419;--btn-hover:#E6E7E8;--btn-border:transparent;
   --accent:#D2691E;--accent-hover:#E07A2E;--gold:#C9A24B;--outline:rgba(255,255,255,.22);--outline-soft:rgba(255,255,255,.10);--chip-bg:rgba(22,24,28,.72);
   --danger:#FF7A7A;
+  --hover:rgba(255,255,255,.03);
+  --skeleton:rgba(255,255,255,.08);
+  --warn-bg:rgba(210,150,30,.12);
+  --warn-border:rgba(210,150,30,.45);
+  --warn-text:#F0B95A;
+  --ok-bg:rgba(29,158,117,.14);
+  --ok-text:#4FD1A5;
+  --like:#F4546A;
   box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
 }
 @media (prefers-color-scheme: light){
@@ -11,6 +19,14 @@
     --btn-bg:#fff;--btn-text:#0B1F3A;--btn-hover:#F1EDE2;--btn-border:#DAD5C8;--gold:#A9812F;
     --outline:rgba(11,31,58,.24);--outline-soft:rgba(11,31,58,.10);--chip-bg:rgba(255,255,255,.82);
     --danger:#B42318;
+    --hover:rgba(11,31,58,.03);
+    --skeleton:rgba(11,31,58,.08);
+    --warn-bg:#FFF6E0;
+    --warn-border:#E8C77A;
+    --warn-text:#7A5200;
+    --ok-bg:#E3F5EE;
+    --ok-text:#0F6E56;
+    --like:#D12D48;
   }
 }
 :root[data-theme="light"]{
@@ -18,6 +34,14 @@
   --btn-bg:#fff;--btn-text:#0B1F3A;--btn-hover:#F1EDE2;--btn-border:#DAD5C8;--gold:#A9812F;
   --outline:rgba(11,31,58,.24);--outline-soft:rgba(11,31,58,.10);--chip-bg:rgba(255,255,255,.82);
   --danger:#B42318;
+  --hover:rgba(11,31,58,.03);
+  --skeleton:rgba(11,31,58,.08);
+  --warn-bg:#FFF6E0;
+  --warn-border:#E8C77A;
+  --warn-text:#7A5200;
+  --ok-bg:#E3F5EE;
+  --ok-text:#0F6E56;
+  --like:#D12D48;
 }
 *{box-sizing:border-box}
 html{height:100%;scroll-padding-top:env(safe-area-inset-top,0px)}
@@ -127,4 +151,19 @@ h1 em{font-style:normal;color:var(--gold)}
 @media (max-height:700px){
   .dev-note{display:none}
 }
+
+/* Feed UX helpers */
+.no-scrollbar::-webkit-scrollbar{display:none}
+.no-scrollbar{-ms-overflow-style:none;scrollbar-width:none}
+
+.skeleton-pulse{animation:skeletonPulse 1.2s ease-in-out infinite alternate}
+@keyframes skeletonPulse{from{opacity:0.6}to{opacity:1}}
+
+@media (prefers-reduced-motion:reduce){
+  .skeleton-pulse{animation:none!important}
+  *{scroll-behavior:auto!important}
+}
+
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+
 

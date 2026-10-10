@@ -112,8 +112,13 @@ const MOCK_AUDIT_KEY = 'lex-mock-audit';
 const MOCK_SETTINGS_KEY = 'lex-mock-settings';
 const MOCK_BLOCKS_KEY = 'lex-mock-blocks';
 
+const memoryStore = new Map<string, string>();
+
 function getStoredJson<T>(key: string, defaultValue: T): T {
-  if (typeof window === 'undefined' || !window.sessionStorage) return defaultValue;
+  if (typeof window === 'undefined' || !window.sessionStorage) {
+    const raw = memoryStore.get(key);
+    return raw ? JSON.parse(raw) : defaultValue;
+  }
   try {
     const raw = sessionStorage.getItem(key);
     return raw ? JSON.parse(raw) : defaultValue;
@@ -123,7 +128,10 @@ function getStoredJson<T>(key: string, defaultValue: T): T {
 }
 
 function setStoredJson(key: string, value: any) {
-  if (typeof window === 'undefined' || !window.sessionStorage) return;
+  if (typeof window === 'undefined' || !window.sessionStorage) {
+    memoryStore.set(key, JSON.stringify(value));
+    return;
+  }
   try {
     sessionStorage.setItem(key, JSON.stringify(value));
   } catch {

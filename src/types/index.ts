@@ -36,6 +36,29 @@ export interface User {
   password?: string;
 }
 
+export interface PostCitation {
+  lawId: string;
+  title: string;
+  number: string;
+  article?: string;
+}
+
+export interface PostDocumentItem {
+  id: string;
+  name: string;
+  size: number;
+  pages?: number;
+  url: string;
+}
+
+export interface PostMediaItem {
+  url: string;
+  alt?: string;
+  aspectRatio?: '1:1' | '4:5' | '16:9' | '9:16' | string;
+  width?: number;
+  height?: number;
+}
+
 export interface PostAttachment {
   type: 'image' | 'video' | 'document' | 'law_reference';
   url: string;
@@ -48,6 +71,7 @@ export interface PostAttachment {
   height?: number;
   duration?: number; // duration in seconds for video
   storageKey?: string;
+  alt?: string;
 }
 
 export interface Post {
@@ -59,6 +83,10 @@ export interface Post {
   legalTopic?: string;
   tags: string[];
   audience: 'public' | 'followers';
+  lang?: 'en' | 'rw' | 'fr';
+  citations?: PostCitation[];
+  documents?: PostDocumentItem[];
+  media?: PostMediaItem[];
   attachments?: PostAttachment[];
   likesCount: number;
   repliesCount: number;

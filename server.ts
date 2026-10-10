@@ -490,7 +490,7 @@ async function startServer() {
   });
 
   api.post('/posts', requireAuth, (req: AuthenticatedRequest, res) => {
-    const { content, legalTopic, tags, attachments, audience, communityId, quotedPostId } = req.body;
+    const { content, legalTopic, tags, attachments, audience, communityId, quotedPostId, citations, documents, media, lang } = req.body;
     if (!content || !content.trim()) {
       return res.status(400).json({ error: 'Post content cannot be empty' });
     }
@@ -504,13 +504,51 @@ async function startServer() {
         attachments,
         audience,
         communityId,
-        quotedPostId
+        quotedPostId,
+        citations,
+        documents,
+        media,
+        lang
       });
       broadcastFeedEvent('post:created', post);
       res.status(201).json(post);
     } catch (err: any) {
       res.status(500).json({ error: err.message });
     }
+  });
+
+  api.post('/posts/:id/not-interested', (req, res) => {
+    res.json({ success: true, postId: req.params.id });
+  });
+
+  api.post('/translate', (req, res) => {
+    const { postId, target } = req.body;
+    const post = db.getPostById(postId);
+    if (!post) return res.status(404).json({ error: 'Post not found' });
+    let text = post.content;
+    if (target === 'rw') {
+      text = `[Ubusobanuro]: ${post.content}`;
+    } else if (target === 'fr') {
+      text = `[Traduction]: ${post.content}`;
+    } else {
+      text = `[Translation]: ${post.content}`;
+    }
+    res.json({ text, sourceLang: post.lang || 'en' });
+  });
+
+  api.get('/search/suggest', (req, res) => {
+    const q = ((req.query.q as string) || '').toLowerCase().trim();
+    const type = req.query.type as string;
+    if (type === 'laws') {
+      const laws = db.getLaws().filter(l =>
+        l.title.toLowerCase().includes(q) ||
+        l.lawNumber.toLowerCase().includes(q) ||
+        l.category.toLowerCase().includes(q) ||
+        l.officialGazetteNumber.toLowerCase().includes(q)
+      ).slice(0, 8);
+      return res.json({ laws });
+    }
+    res.json({ suggestions: [] });
   });
 
   api.patch('/posts/:id', requireAuth, (req: AuthenticatedRequest, res) => {
