@@ -2,20 +2,32 @@ import React, { useState, useRef } from 'react';
 import {
   FileText,
   ShieldAlert,
-  Globe,
-  Users,
   Send,
   X,
-  Sparkles,
   BookmarkCheck,
   LogIn,
   Paperclip,
-  BookOpen
+  BookOpen,
+  Image as ImageIcon,
+  FileVideo,
+  ChevronLeft,
+  ChevronRight,
+  AlertCircle,
+  Sparkles
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { useTranslation } from '../../utils/i18n';
 import { UserAvatar } from '../common/UserAvatar';
 import { PostAttachment } from '../../types';
+import { api } from '../../api/client';
+import {
+  extractVideoPoster,
+  probeImageDimensions,
+  formatBytes,
+  MAX_VIDEO_SIZE_BYTES,
+  MAX_IMAGE_SIZE_BYTES,
+  MAX_VIDEO_DURATION_SECONDS
+} from '../../utils/mediaUtils';
 
 interface PostComposerProps {
   onPostCreated?: () => void;
@@ -38,7 +50,16 @@ export const PostComposer: React.FC<PostComposerProps> = ({
   const [audience, setAudience] = useState<'public' | 'followers'>('public');
   const [attachments, setAttachments] = useState<PostAttachment[]>([]);
   const [hasSavedDraft, setHasSavedDraft] = useState(false);
+
+  // Upload Progress & Validation States
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadedBytes, setUploadedBytes] = useState(0);
+  const [totalBytes, setTotalBytes] = useState(0);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
   const filePickerRef = useRef<HTMLInputElement>(null);
+  const docPickerRef = useRef<HTMLInputElement>(null);
 
   const MAX_CHARS = 500;
   const remainingChars = MAX_CHARS - content.length;
@@ -73,6 +94,7 @@ export const PostComposer: React.FC<PostComposerProps> = ({
         </div>
 
         <button
+          type="button"
           onClick={openLoginModal}
           className="px-4 py-2 bg-blue-700 hover:bg-blue-800 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-xs shrink-0 cursor-pointer"
         >
@@ -83,29 +105,145 @@ export const PostComposer: React.FC<PostComposerProps> = ({
     );
   }
 
-  const handleFilePicked = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Handle Photo or Video Media Upload (Carousels up to 10 items)
+  const handleMediaPicked = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setErrorMessage(null);
+
+    // Limit to max 10 media items total
+    const existingMediaCount = attachments.filter(a => a.type === 'image' || a.type === 'video').length;
+    if (existingMediaCount + files.length > 10) {
+      setErrorMessage('You can attach up to 10 media items in one post.');
+      return;
+    }
+
+    setIsUploading(true);
+
+    try {
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const isVid = file.type.startsWith('video/');
+        const isImg = file.type.startsWith('image/');
+
+        if (!isVid && !isImg) {
+          setErrorMessage(`Skipped ${file.name}: unsupported format.`);
+          continue;
+        }
+
+        if (isVid && file.size > MAX_VIDEO_SIZE_BYTES) {
+          setErrorMessage(`Video ${file.name} exceeds the 50 MB limit (${formatBytes(file.size)}).`);
+          continue;
+        }
+
+        if (isImg && file.size > MAX_IMAGE_SIZE_BYTES) {
+          setErrorMessage(`Image ${file.name} exceeds the 15 MB limit (${formatBytes(file.size)}).`);
+          continue;
+        }
+
+        let posterUrl = '';
+        let duration: number | undefined;
+        let width: number | undefined;
+        let height: number | undefined;
+        let aspectRatio: '1:1' | '4:5' | '16:9' | '9:16' = '4:5';
+
+        if (isVid) {
+          try {
+            const meta = await extractVideoPoster(file);
+            if (meta.duration > MAX_VIDEO_DURATION_SECONDS) {
+              setErrorMessage(`Video ${file.name} is ${Math.round(meta.duration)}s. Maximum allowed duration is 120 seconds.`);
+              continue;
+            }
+            duration = meta.duration;
+            width = meta.width;
+            height = meta.height;
+            aspectRatio = meta.aspectRatio;
+            posterUrl = meta.posterDataUrl;
+          } catch {
+            duration = 30;
+          }
+        } else {
+          try {
+            const dims = await probeImageDimensions(file);
+            width = dims.width;
+            height = dims.height;
+            aspectRatio = dims.aspectRatio;
+          } catch {}
+        }
+
+        // Upload to server endpoint
+        const uploadRes = await api.uploadMedia(file, {
+          duration,
+          width,
+          height,
+          aspectRatio,
+          posterUrl,
+          onProgress: (percent, loaded, total) => {
+            setUploadProgress(percent);
+            setUploadedBytes(loaded);
+            setTotalBytes(total);
+          }
+        });
+
+        const newAttachment: PostAttachment = {
+          type: isVid ? 'video' : 'image',
+          url: uploadRes.url,
+          name: file.name,
+          fileSize: formatBytes(file.size),
+          mimeType: file.type,
+          previewUrl: posterUrl || uploadRes.url,
+          aspectRatio,
+          width,
+          height,
+          duration,
+          storageKey: uploadRes.mediaAsset?.storagePath
+        };
+
+        setAttachments(prev => [...prev, newAttachment]);
+      }
+    } catch (err: any) {
+      setErrorMessage(err.message || 'Media upload failed.');
+    } finally {
+      setIsUploading(false);
+      setUploadProgress(0);
+      if (filePickerRef.current) filePickerRef.current.value = '';
+    }
+  };
+
+  // Handle Document Upload (PDF, DOC, DOCX)
+  const handleDocPicked = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const formattedSize = file.size > 1024 * 1024
-      ? `${(file.size / (1024 * 1024)).toFixed(1)} MB`
-      : `${Math.round(file.size / 1024)} KB`;
+    setErrorMessage(null);
+    setIsUploading(true);
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      const newDoc: PostAttachment = {
-        type: file.type.startsWith('image/') ? 'image' : 'document',
-        url: (reader.result as string) || '#',
+    try {
+      const uploadRes = await api.uploadMedia(file, {
+        onProgress: (percent, loaded, total) => {
+          setUploadProgress(percent);
+          setUploadedBytes(loaded);
+          setTotalBytes(total);
+        }
+      });
+
+      const docAttachment: PostAttachment = {
+        type: 'document',
+        url: uploadRes.url,
         name: file.name,
-        fileSize: formattedSize,
-        mimeType: file.type || 'application/octet-stream'
+        fileSize: formatBytes(file.size),
+        mimeType: file.type,
+        storageKey: uploadRes.mediaAsset?.storagePath
       };
-      setAttachments(prev => [...prev, newDoc]);
-    };
-    reader.readAsDataURL(file);
 
-    if (filePickerRef.current) {
-      filePickerRef.current.value = '';
+      setAttachments(prev => [...prev, docAttachment]);
+    } catch (err: any) {
+      setErrorMessage(err.message || 'Document upload failed.');
+    } finally {
+      setIsUploading(false);
+      setUploadProgress(0);
+      if (docPickerRef.current) docPickerRef.current.value = '';
     }
   };
 
@@ -123,6 +261,17 @@ export const PostComposer: React.FC<PostComposerProps> = ({
     setAttachments(prev => prev.filter((_, i) => i !== index));
   };
 
+  const moveAttachment = (index: number, direction: 'left' | 'right') => {
+    const newAttachments = [...attachments];
+    const targetIndex = direction === 'left' ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= newAttachments.length) return;
+
+    const temp = newAttachments[index];
+    newAttachments[index] = newAttachments[targetIndex];
+    newAttachments[targetIndex] = temp;
+    setAttachments(newAttachments);
+  };
+
   const handleSaveDraft = () => {
     if (!content.trim()) return;
     localStorage.setItem('lex_composer_draft', JSON.stringify({ content, legalTopic, audience }));
@@ -130,17 +279,19 @@ export const PostComposer: React.FC<PostComposerProps> = ({
     setTimeout(() => setHasSavedDraft(false), 2500);
   };
 
-  const handleSubmit = (e?: React.FormEvent) => {
+  const handleSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (!content.trim()) return;
+    if (!content.trim() && attachments.length === 0) return;
+    if (isUploading) return;
 
     const tagsFound = content.match(/#[a-zA-Z0-9_]+/g)?.map(tag => tag.replace('#', '')) || [];
     const finalTags = tagsFound.length ? tagsFound : [legalTopic.replace(/\s+/g, '')];
 
-    createPost(content.trim(), legalTopic, finalTags, attachments, audience, communityId);
+    await createPost(content.trim(), legalTopic, finalTags, attachments, audience, communityId);
 
     setContent('');
     setAttachments([]);
+    setErrorMessage(null);
     localStorage.removeItem('lex_composer_draft');
     if (onPostCreated) onPostCreated();
   };
@@ -190,6 +341,7 @@ export const PostComposer: React.FC<PostComposerProps> = ({
 
           {/* Text Area */}
           <textarea
+            data-composer-input="true"
             value={content}
             onChange={e => setContent(e.target.value)}
             placeholder={t.composerPlaceholder}
@@ -198,7 +350,33 @@ export const PostComposer: React.FC<PostComposerProps> = ({
             className="w-full resize-none text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none leading-relaxed bg-transparent"
           />
 
-          {/* Attached Files Preview */}
+          {/* Upload Progress Bar */}
+          {isUploading && (
+            <div className="my-2 p-2.5 bg-blue-50 border border-blue-200 rounded-xl space-y-1">
+              <div className="flex items-center justify-between text-2xs font-bold text-blue-900">
+                <span>Uploading {uploadProgress}%</span>
+                <span>
+                  {formatBytes(uploadedBytes)} of {formatBytes(totalBytes)}
+                </span>
+              </div>
+              <div className="w-full h-1.5 bg-blue-200 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-blue-700 transition-all duration-150 rounded-full"
+                  style={{ width: `${uploadProgress}%` }}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Error Message */}
+          {errorMessage && (
+            <div className="my-2 p-2 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs flex items-center gap-1.5">
+              <AlertCircle className="w-4 h-4 shrink-0 text-red-600" />
+              <span>{errorMessage}</span>
+            </div>
+          )}
+
+          {/* Attached Files & Carousel Previews */}
           {attachments.length > 0 && (
             <div className="flex flex-wrap gap-2 my-2">
               {attachments.map((att, idx) => (
@@ -206,9 +384,44 @@ export const PostComposer: React.FC<PostComposerProps> = ({
                   key={idx}
                   className="flex items-center gap-2 bg-slate-100 border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs text-slate-700"
                 >
-                  <FileText className="w-4 h-4 text-blue-600" />
-                  <span className="font-medium truncate max-w-[160px]">{att.name}</span>
+                  {att.type === 'video' ? (
+                    <FileVideo className="w-4 h-4 text-purple-600 shrink-0" />
+                  ) : att.type === 'image' ? (
+                    <ImageIcon className="w-4 h-4 text-blue-600 shrink-0" />
+                  ) : (
+                    <FileText className="w-4 h-4 text-emerald-600 shrink-0" />
+                  )}
+
+                  <span className="font-medium truncate max-w-[140px]">{att.name}</span>
+
+                  {/* Reorder Buttons */}
+                  {attachments.length > 1 && (
+                    <div className="flex items-center gap-0.5">
+                      {idx > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => moveAttachment(idx, 'left')}
+                          className="p-0.5 text-slate-400 hover:text-slate-700 rounded"
+                          title="Move left"
+                        >
+                          <ChevronLeft className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                      {idx < attachments.length - 1 && (
+                        <button
+                          type="button"
+                          onClick={() => moveAttachment(idx, 'right')}
+                          className="p-0.5 text-slate-400 hover:text-slate-700 rounded"
+                          title="Move right"
+                        >
+                          <ChevronRight className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
+                  )}
+
                   <button
+                    type="button"
                     onClick={() => removeAttachment(idx)}
                     className="text-slate-400 hover:text-slate-700 p-0.5 rounded-full"
                   >
@@ -221,23 +434,47 @@ export const PostComposer: React.FC<PostComposerProps> = ({
 
           {/* Bottom Toolbar & Publish */}
           <div className="flex flex-wrap items-center justify-between pt-2 border-t border-slate-100 gap-2">
-            <div className="flex items-center gap-1.5 text-slate-500">
+            <div className="flex items-center gap-1 text-slate-500">
+              {/* Media input (Photos & Videos) */}
               <input
                 type="file"
                 ref={filePickerRef}
-                onChange={handleFilePicked}
+                onChange={handleMediaPicked}
+                multiple
                 className="hidden"
-                accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.txt"
+                accept="image/*,video/mp4,video/webm,video/quicktime"
               />
               <button
                 type="button"
                 onClick={() => filePickerRef.current?.click()}
+                disabled={isUploading}
+                title="Add Photos or Video"
+                className="p-1.5 hover:bg-blue-50 hover:text-blue-700 rounded-lg transition flex items-center gap-1 text-2xs font-semibold cursor-pointer"
+              >
+                <ImageIcon className="w-3.5 h-3.5 text-blue-600" />
+                <span className="hidden sm:inline">Photo/Video</span>
+              </button>
+
+              {/* Document input */}
+              <input
+                type="file"
+                ref={docPickerRef}
+                onChange={handleDocPicked}
+                className="hidden"
+                accept=".pdf,.doc,.docx,.txt"
+              />
+              <button
+                type="button"
+                onClick={() => docPickerRef.current?.click()}
+                disabled={isUploading}
                 title="Attach Document / PDF"
                 className="p-1.5 hover:bg-blue-50 hover:text-blue-700 rounded-lg transition flex items-center gap-1 text-2xs font-semibold cursor-pointer"
               >
                 <Paperclip className="w-3.5 h-3.5 text-blue-600" />
-                <span className="hidden sm:inline">Attach File/Doc</span>
+                <span className="hidden sm:inline">Attach Doc</span>
               </button>
+
+              {/* Cite Law */}
               <button
                 type="button"
                 onClick={handleAddStatuteCitation}
@@ -247,6 +484,8 @@ export const PostComposer: React.FC<PostComposerProps> = ({
                 <BookOpen className="w-3.5 h-3.5 text-blue-600" />
                 <span className="hidden sm:inline">Cite Law</span>
               </button>
+
+              {/* Save Draft */}
               <button
                 type="button"
                 onClick={handleSaveDraft}
@@ -270,15 +509,15 @@ export const PostComposer: React.FC<PostComposerProps> = ({
               <button
                 type="button"
                 onClick={() => handleSubmit()}
-                disabled={!content.trim()}
+                disabled={(!content.trim() && attachments.length === 0) || isUploading}
                 className={`px-4 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
-                  content.trim()
-                    ? 'bg-[#1D4ED8] hover:bg-[#1e40af] text-white shadow-xs'
+                  (content.trim() || attachments.length > 0) && !isUploading
+                    ? 'bg-[#D36B2E] hover:bg-[#B8551E] text-white shadow-xs'
                     : 'bg-slate-100 text-slate-400 cursor-not-allowed'
                 }`}
               >
                 <Send className="w-3.5 h-3.5" />
-                <span>{t.btnPublish}</span>
+                <span>{isUploading ? 'Uploading...' : t.btnPublish}</span>
               </button>
             </div>
           </div>

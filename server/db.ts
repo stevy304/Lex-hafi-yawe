@@ -16,7 +16,10 @@ import {
   Message,
   ReportItem,
   VerificationApplication,
-  AdminAuditLog
+  AdminAuditLog,
+  Story,
+  MediaAsset,
+  FeedPaginationResult
 } from '../src/types/index.js';
 import {
   OFFICIAL_LAWS,
@@ -57,6 +60,8 @@ export interface DatabaseSchema {
   reports: ReportItem[];
   verificationApplications: VerificationApplication[];
   auditLogs: AdminAuditLog[];
+  stories?: Story[];
+  mediaAssets?: MediaAsset[];
 }
 
 const DATA_DIR = path.resolve(process.cwd(), 'data');
@@ -114,7 +119,9 @@ function generateInitialData(): DatabaseSchema {
     notifications: [],
     reports: [],
     verificationApplications: [],
-    auditLogs: []
+    auditLogs: [],
+    stories: [],
+    mediaAssets: []
   };
 }
 
@@ -232,6 +239,14 @@ class Database {
       this.data.users.some(u => u.id === a.adminId) &&
       !a.id.startsWith('audit_')
     );
+
+    // Keep active unexpired stories (24h retention)
+    const now = Date.now();
+    this.data.stories = (this.data.stories || []).filter(s => 
+      !demoUserIds.has(s.authorId) &&
+      new Date(s.expiresAt).getTime() > now
+    );
+    this.data.mediaAssets = (this.data.mediaAssets || []).filter(m => !demoUserIds.has(m.ownerId));
 
     // Keep authentic official laws & providers
     this.data.laws = JSON.parse(JSON.stringify(OFFICIAL_LAWS));
@@ -526,11 +541,123 @@ class Database {
     }
 
     // Sort descending by date
-    return list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+    return list.map(p => ({
+      ...p,
+      quotedPost: p.quotedPostId ? this.getPostById(p.quotedPostId) || undefined : undefined,
+      previewReplies: this.getReplies(p.id).slice(-2)
+    }));
+  }
+
+  public getPostsPaginated(filters?: {
+    topic?: string;
+    tag?: string;
+    authorId?: string;
+    communityId?: string;
+    query?: string;
+    tab?: string;
+    currentUserId?: string;
+    cursor?: string;
+    limit?: number;
+  }): FeedPaginationResult {
+    let list = [...this.data.posts];
+
+    if (filters?.communityId) {
+      list = list.filter(p => p.communityId === filters.communityId);
+    }
+    if (filters?.authorId) {
+      list = list.filter(p => p.authorId === filters.authorId);
+    }
+    if (filters?.topic && filters.topic !== 'all') {
+      list = list.filter(p => p.legalTopic === filters.topic);
+    }
+    if (filters?.tag) {
+      list = list.filter(p => p.tags.includes(filters.tag!));
+    }
+    if (filters?.query) {
+      const q = filters.query.toLowerCase();
+      list = list.filter(p =>
+        p.content.toLowerCase().includes(q) ||
+        (p.legalTopic && p.legalTopic.toLowerCase().includes(q)) ||
+        p.tags.some(t => t.toLowerCase().includes(q))
+      );
+    }
+
+    if (filters?.tab === 'following' && filters.currentUserId) {
+      const user = this.getUserById(filters.currentUserId);
+      const followingIds = user?.followingIds || [];
+      list = list.filter(p => followingIds.includes(p.authorId) || p.authorId === filters.currentUserId);
+    } else if (filters?.tab === 'advocates') {
+      list = list.filter(p => {
+        const author = this.getUserById(p.authorId);
+        return author?.role === 'advocate' || author?.verificationType === 'bar_member';
+      });
+    } else if (filters?.tab === 'official') {
+      list = list.filter(p => {
+        const author = this.getUserById(p.authorId);
+        return p.isOfficialAnnouncement || author?.role === 'institution' || author?.verificationType === 'official_institution';
+      });
+    }
+
+    list.sort((a, b) => {
+      const diff = new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      if (diff !== 0) return diff;
+      return b.id.localeCompare(a.id);
+    });
+
+    const totalCount = list.length;
+    const limit = filters?.limit ? Math.min(Math.max(filters.limit, 1), 50) : 15;
+
+    let startIndex = 0;
+    if (filters?.cursor) {
+      try {
+        const decoded = Buffer.from(filters.cursor, 'base64').toString('utf-8');
+        const [cursorDate, cursorId] = decoded.split('|');
+        const foundIndex = list.findIndex(p => {
+          if (p.createdAt === cursorDate && p.id === cursorId) return true;
+          return p.createdAt < cursorDate;
+        });
+        if (foundIndex !== -1) {
+          startIndex = list[foundIndex].id === cursorId ? foundIndex + 1 : foundIndex;
+        }
+      } catch {
+        startIndex = 0;
+      }
+    }
+
+    const pageItems = list.slice(startIndex, startIndex + limit);
+    const enriched = pageItems.map(p => ({
+      ...p,
+      quotedPost: p.quotedPostId ? this.getPostById(p.quotedPostId) || undefined : undefined,
+      previewReplies: this.getReplies(p.id).slice(-2)
+    }));
+
+    const nextItem = list[startIndex + limit];
+    let nextCursor: string | null = null;
+    let hasMore = false;
+
+    if (nextItem) {
+      hasMore = true;
+      nextCursor = Buffer.from(`${nextItem.createdAt}|${nextItem.id}`).toString('base64');
+    }
+
+    return {
+      posts: enriched,
+      nextCursor,
+      hasMore,
+      totalCount
+    };
   }
 
   public getPostById(id: string): Post | null {
-    return this.data.posts.find(p => p.id === id) || null;
+    const post = this.data.posts.find(p => p.id === id);
+    if (!post) return null;
+    return {
+      ...post,
+      quotedPost: post.quotedPostId ? this.data.posts.find(p => p.id === post.quotedPostId) || undefined : undefined,
+      previewReplies: this.getReplies(post.id).slice(-2)
+    };
   }
 
   public createPost(postData: {
@@ -1301,6 +1428,100 @@ class Database {
       totalAppointments: this.data.appointments.length,
       totalCommunities: this.data.communities.length
     };
+  }
+
+  // --- Stories & Legal Bulletins ---
+
+  public getStories(currentUserId?: string): Story[] {
+    const now = Date.now();
+    // Enforce 24-hour server-side expiration policy
+    this.data.stories = (this.data.stories || []).filter(s => new Date(s.expiresAt).getTime() > now);
+    return [...this.data.stories].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }
+
+  public createStory(authorId: string, data: {
+    mediaType: 'image' | 'video';
+    mediaUrl: string;
+    previewUrl?: string;
+    caption?: string;
+    duration?: number;
+    storyType?: Story['storyType'];
+    isOfficialGazetteAlert?: boolean;
+  }): Story {
+    const user = this.getUserById(authorId);
+    if (!user) throw new Error('User not found');
+
+    let resolvedType: Story['storyType'] = 'community_story';
+    // Only authorized institutions or admins can post official bulletins
+    if (user.role === 'institution' || user.role === 'admin' || user.verificationType === 'official_institution') {
+      resolvedType = 'official_bulletin';
+    } else if (user.role === 'advocate' || user.verificationType === 'bar_member') {
+      resolvedType = 'advocate_story';
+    }
+
+    const newStory: Story = {
+      id: `story_${Date.now()}_${crypto.randomBytes(3).toString('hex')}`,
+      authorId,
+      mediaType: data.mediaType,
+      mediaUrl: data.mediaUrl,
+      previewUrl: data.previewUrl,
+      caption: data.caption,
+      createdAt: new Date().toISOString(),
+      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+      duration: Math.min(data.duration || (data.mediaType === 'video' ? 15 : 6), 15),
+      viewsCount: 0,
+      viewedBy: [],
+      storyType: resolvedType,
+      isOfficialGazetteAlert: !!data.isOfficialGazetteAlert
+    };
+
+    if (!this.data.stories) this.data.stories = [];
+    this.data.stories.unshift(newStory);
+    this.persist();
+    return newStory;
+  }
+
+  public recordStoryView(storyId: string, viewerId: string): { viewsCount: number } {
+    if (!this.data.stories) return { viewsCount: 0 };
+    const story = this.data.stories.find(s => s.id === storyId);
+    if (!story) return { viewsCount: 0 };
+
+    if (!story.viewedBy.includes(viewerId)) {
+      story.viewedBy.push(viewerId);
+      story.viewsCount = story.viewedBy.length;
+      this.persist();
+    }
+    return { viewsCount: story.viewsCount };
+  }
+
+  public deleteStory(storyId: string, userId: string): boolean {
+    if (!this.data.stories) return false;
+    const storyIndex = this.data.stories.findIndex(s => s.id === storyId);
+    if (storyIndex === -1) return false;
+
+    const story = this.data.stories[storyIndex];
+    const user = this.getUserById(userId);
+    if (story.authorId !== userId && user?.role !== 'admin') {
+      throw new Error('Permission denied to delete this story');
+    }
+
+    this.data.stories.splice(storyIndex, 1);
+    this.persist();
+    return true;
+  }
+
+  // --- Media Assets ---
+
+  public saveMediaAsset(asset: MediaAsset): MediaAsset {
+    if (!this.data.mediaAssets) this.data.mediaAssets = [];
+    this.data.mediaAssets.push(asset);
+    this.persist();
+    return asset;
+  }
+
+  public getMediaAsset(id: string): MediaAsset | null {
+    if (!this.data.mediaAssets) return null;
+    return this.data.mediaAssets.find(m => m.id === id) || null;
   }
 
   // --- Reset/Seed ---

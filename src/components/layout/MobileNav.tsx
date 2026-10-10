@@ -26,7 +26,11 @@ import { UserAvatar } from '../common/UserAvatar';
 import { VerificationBadge } from '../common/VerificationBadge';
 import { LanguageSelector } from '../common/LanguageSelector';
 
-export const MobileNav: React.FC = () => {
+interface MobileNavProps {
+  onOpenCommandPalette?: () => void;
+}
+
+export const MobileNav: React.FC<MobileNavProps> = ({ onOpenCommandPalette }) => {
   const {
     activeView,
     setActiveView,
@@ -37,6 +41,7 @@ export const MobileNav: React.FC = () => {
     navigateToProfile,
     openLoginModal,
     openRegisterModal,
+    navigateToLanding,
     logout,
     language
   } = useApp();
@@ -65,11 +70,11 @@ export const MobileNav: React.FC = () => {
   return (
     <>
       {/* Mobile Top App Bar */}
-      <header className="lg:hidden sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200 px-4 py-2.5 flex items-center justify-between">
+      <header className="lg:hidden sticky top-0 z-40 bg-[#F6F4EF]/95 backdrop-blur-md border-b border-[#E3DDD4] px-4 py-2.5 flex items-center justify-between">
         <div className="flex items-center gap-2.5">
           <button
             onClick={() => setIsDrawerOpen(true)}
-            className="p-1.5 text-slate-700 hover:bg-slate-100 rounded-lg transition"
+            className="p-1.5 text-[#45525A] hover:bg-[#EAE5DC] rounded-lg transition cursor-pointer"
             aria-label="Open menu"
           >
             <Menu className="w-5 h-5" />
@@ -78,53 +83,59 @@ export const MobileNav: React.FC = () => {
             onClick={() => setActiveView('feed')}
             className="flex items-center gap-2 cursor-pointer"
           >
-            <div className="w-7 h-7 rounded-lg bg-blue-700 flex items-center justify-center text-white">
-              <Scale className="w-4 h-4 text-amber-300" />
+            <div className="w-8 h-8 rounded-xl bg-[#45525A] flex items-center justify-center text-white border border-[#344047] shadow-xs">
+              <Scale className="w-4.5 h-4.5 text-[#D36B2E]" />
             </div>
-            <span className="font-extrabold text-base tracking-tight text-slate-900">
-              Lex Hafi Yawe
-            </span>
+            <div>
+              <span className="font-extrabold text-base tracking-tight text-[#1E293B] block leading-none">
+                Lex Hafi Yawe
+              </span>
+              <span className="text-[9px] font-bold text-[#576574] uppercase tracking-wider block mt-0.5">
+                Digital Justice
+              </span>
+            </div>
           </div>
         </div>
 
         <div className="flex items-center gap-1.5">
-          <LanguageSelector compact />
-          {currentUser ? (
-            <div className="flex items-center gap-1">
-              <button
-                onClick={() => navigateToProfile(currentUser.id)}
-                className="flex items-center"
-                title="View Profile"
-              >
-                <UserAvatar user={currentUser} size="sm" />
-              </button>
-              <button
-                type="button"
-                onClick={() => logout()}
-                className="p-1 text-slate-400 hover:text-red-600 rounded-lg"
-                title="Log Out"
-                aria-label="Log Out"
-              >
-                <LogOut className="w-4 h-4" />
-              </button>
-            </div>
-          ) : (
+          {onOpenCommandPalette && (
             <button
-              onClick={openLoginModal}
-              className="px-2.5 py-1 bg-blue-700 text-white rounded-lg text-xs font-bold"
+              type="button"
+              onClick={onOpenCommandPalette}
+              className="p-1.5 text-[#576574] hover:text-[#1E293B] hover:bg-[#EAE5DC] rounded-lg transition cursor-pointer"
+              aria-label="Search Legal Database"
+              title="Search Lex Hafi Yawe"
             >
-              Sign In
+              <Search className="w-5 h-5 text-[#45525A]" />
             </button>
           )}
+
+          <button
+            type="button"
+            onClick={() => {
+              if (!currentUser) openLoginModal();
+              else setActiveView('notifications');
+            }}
+            className="p-1.5 text-[#576574] hover:text-[#1E293B] hover:bg-[#EAE5DC] rounded-lg transition relative cursor-pointer"
+            aria-label="Notifications"
+            title="Notifications"
+          >
+            <Bell className="w-5 h-5 text-[#45525A]" />
+            {unreadNotificationsCount > 0 && (
+              <span className="absolute top-1 right-1 min-w-[15px] h-[15px] px-0.5 bg-[#D36B2E] text-white text-[9px] font-extrabold rounded-full flex items-center justify-center">
+                {unreadNotificationsCount}
+              </span>
+            )}
+          </button>
         </div>
       </header>
 
       {/* Mobile Bottom Navigation Bar */}
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 px-3 py-1.5 flex items-center justify-around">
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#FAF8F5]/95 backdrop-blur-md border-t border-[#E3DDD4] px-3 py-1.5 flex items-center justify-around">
         <button
           onClick={() => setActiveView('feed')}
           className={`flex flex-col items-center py-1 px-2.5 rounded-lg text-xs font-semibold ${
-            activeView === 'feed' ? 'text-blue-700' : 'text-slate-500'
+            activeView === 'feed' ? 'text-[#D36B2E]' : 'text-[#576574]'
           }`}
         >
           <Home className="w-5 h-5" />
@@ -134,7 +145,7 @@ export const MobileNav: React.FC = () => {
         <button
           onClick={() => setActiveView('explore')}
           className={`flex flex-col items-center py-1 px-2.5 rounded-lg text-xs font-semibold ${
-            activeView === 'explore' ? 'text-blue-700' : 'text-slate-500'
+            activeView === 'explore' ? 'text-[#D36B2E]' : 'text-[#576574]'
           }`}
         >
           <Search className="w-5 h-5" />
@@ -144,7 +155,7 @@ export const MobileNav: React.FC = () => {
         {/* Center Floating Post Button */}
         <button
           onClick={handlePostClick}
-          className="w-11 h-11 rounded-full bg-blue-700 text-white flex items-center justify-center shadow-lg shadow-blue-700/30 -mt-4 active:scale-95 transition"
+          className="w-11 h-11 rounded-full bg-[#D36B2E] text-white flex items-center justify-center shadow-lg shadow-[#D36B2E]/30 -mt-4 active:scale-95 transition cursor-pointer"
           aria-label="Create Post"
         >
           <Plus className="w-6 h-6" />
@@ -156,12 +167,12 @@ export const MobileNav: React.FC = () => {
             else setActiveView('notifications');
           }}
           className={`flex flex-col items-center py-1 px-2.5 rounded-lg text-xs font-semibold relative ${
-            activeView === 'notifications' ? 'text-blue-700' : 'text-slate-500'
+            activeView === 'notifications' ? 'text-[#D36B2E]' : 'text-[#576574]'
           }`}
         >
           <Bell className="w-5 h-5" />
           {unreadNotificationsCount > 0 && (
-            <span className="absolute top-0 right-2 w-2 h-2 bg-blue-600 rounded-full" />
+            <span className="absolute top-0 right-2 w-2 h-2 bg-[#D36B2E] rounded-full" />
           )}
           <span className="text-[10px] mt-0.5">{t.navNotifications}</span>
         </button>
@@ -172,12 +183,12 @@ export const MobileNav: React.FC = () => {
             else setActiveView('messages');
           }}
           className={`flex flex-col items-center py-1 px-2.5 rounded-lg text-xs font-semibold relative ${
-            activeView === 'messages' ? 'text-blue-700' : 'text-slate-500'
+            activeView === 'messages' ? 'text-[#D36B2E]' : 'text-[#576574]'
           }`}
         >
           <Mail className="w-5 h-5" />
           {unreadMessagesCount > 0 && (
-            <span className="absolute top-0 right-2 w-2 h-2 bg-blue-600 rounded-full" />
+            <span className="absolute top-0 right-2 w-2 h-2 bg-[#D36B2E] rounded-full" />
           )}
           <span className="text-[10px] mt-0.5">{t.navMessages}</span>
         </button>
@@ -211,7 +222,7 @@ export const MobileNav: React.FC = () => {
                         openLoginModal();
                         setIsDrawerOpen(false);
                       }}
-                      className="px-3 py-1.5 bg-blue-700 text-white rounded-xl text-xs font-bold"
+                      className="px-3 py-1.5 bg-[#D36B2E] hover:bg-[#B8551E] text-white rounded-xl text-xs font-bold cursor-pointer"
                     >
                       Sign In
                     </button>
@@ -224,6 +235,15 @@ export const MobileNav: React.FC = () => {
                     >
                       Register
                     </button>
+                    <button
+                      onClick={() => {
+                        navigateToLanding();
+                        setIsDrawerOpen(false);
+                      }}
+                      className="px-2.5 py-1.5 text-slate-500 hover:text-[#D36B2E] text-xs font-semibold"
+                    >
+                      Welcome Page
+                    </button>
                   </div>
                 )}
                 <button
@@ -232,6 +252,14 @@ export const MobileNav: React.FC = () => {
                 >
                   <X className="w-5 h-5" />
                 </button>
+              </div>
+
+              {/* Multilingual Selector inside Mobile Drawer */}
+              <div className="pb-2.5 mb-2 border-b border-slate-100 px-1">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                  Language / Ururimi / Langue
+                </span>
+                <LanguageSelector compact />
               </div>
 
               <div className="space-y-1">

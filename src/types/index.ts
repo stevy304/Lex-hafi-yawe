@@ -37,12 +37,17 @@ export interface User {
 }
 
 export interface PostAttachment {
-  type: 'image' | 'document' | 'law_reference';
+  type: 'image' | 'video' | 'document' | 'law_reference';
   url: string;
   name: string;
   fileSize?: string;
   mimeType?: string;
-  previewUrl?: string;
+  previewUrl?: string; // poster for video or document thumbnail
+  aspectRatio?: '1:1' | '4:5' | '16:9' | '9:16';
+  width?: number;
+  height?: number;
+  duration?: number; // duration in seconds for video
+  storageKey?: string;
 }
 
 export interface Post {
@@ -67,6 +72,49 @@ export interface Post {
   quotedPostId?: string;
   quotedPost?: Post;
   parentId?: string; // If this post is a reply
+  previewReplies?: Reply[];
+}
+
+export interface Story {
+  id: string;
+  authorId: string;
+  mediaType: 'image' | 'video';
+  mediaUrl: string;
+  previewUrl?: string;
+  caption?: string;
+  createdAt: string;
+  expiresAt: string;
+  duration?: number; // seconds (max 15s)
+  viewsCount: number;
+  viewedBy: string[]; // user IDs
+  storyType: 'official_bulletin' | 'advocate_story' | 'community_story';
+  isOfficialGazetteAlert?: boolean;
+}
+
+export interface MediaAsset {
+  id: string;
+  ownerId: string;
+  postId?: string;
+  storyId?: string;
+  mediaType: 'image' | 'video' | 'document';
+  mimeType: string;
+  fileSize: number;
+  duration?: number;
+  width?: number;
+  height?: number;
+  aspectRatio?: '1:1' | '4:5' | '16:9' | '9:16';
+  storagePath: string;
+  publicUrl: string;
+  posterUrl?: string;
+  uploadStatus: 'uploading' | 'ready' | 'failed';
+  createdAt: string;
+}
+
+export interface FeedPaginationResult {
+  posts: Post[];
+  nextCursor: string | null;
+  hasMore: boolean;
+  totalCount: number;
 }
 
 export interface Reply {

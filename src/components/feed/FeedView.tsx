@@ -1,77 +1,233 @@
-import React, { useState } from 'react';
-import { FeedTabs, FeedFilter } from './FeedTabs';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { FeedHeader } from './FeedHeader';
+import { FeedFilter } from './FeedTabs';
+import { StoriesTray } from './StoriesTray';
 import { PostComposer } from './PostComposer';
 import { PostCard } from './PostCard';
+import { PostCardSkeleton } from './PostCardSkeleton';
+import { VerticalVideoViewerModal } from './VerticalVideoViewerModal';
 import { useApp } from '../../context/AppContext';
+import { api } from '../../api/client';
+import { Post } from '../../types';
 import {
   Sparkles,
   Users,
-  Award,
   ShieldCheck,
-  MessageSquare,
   BookOpen,
   HeartHandshake,
   Scale,
   Feather,
   ArrowRight,
-  Lock,
-  Compass
+  Filter,
+  RefreshCw,
+  Loader2
 } from 'lucide-react';
+
+const LEGAL_TOPIC_FILTERS = [
+  'All Topics',
+  'Land & Property',
+  'Labor & Employment',
+  'Commercial & Companies',
+  'Criminal & Constitutional',
+  'Family & Succession',
+  'Alternative Dispute Resolution (Abunzi)',
+  'Data Protection & Tech',
+  'Taxation & Regulatory'
+];
 
 export const FeedView: React.FC = () => {
   const {
-    posts,
+    posts: initialPosts,
     users,
     currentUser,
     setActiveView,
     setIsCreatePostModalOpen,
     openLoginModal
   } = useApp();
+
   const [currentTab, setCurrentTab] = useState<FeedFilter>('for_you');
+  const [selectedTopic, setSelectedTopic] = useState<string>('All Topics');
+  const [verifiedOnly, setVerifiedOnly] = useState<boolean>(false);
+  const [mediaOnly, setMediaOnly] = useState<boolean>(false);
+  const [feedPosts, setFeedPosts] = useState<Post[]>(initialPosts);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [hasMore, setHasMore] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [verticalVideoModalPostId, setVerticalVideoModalPostId] = useState<string | null>(null);
 
-  // Filter posts based on active tab
-  const filteredPosts = posts.filter(post => {
-    const author = users.find(u => u.id === post.authorId);
+  const sentinelRef = useRef<HTMLDivElement>(null);
 
-    if (currentTab === 'for_you') {
-      return true; // Algorithmically balanced feed
+  // Synchronize initial context posts
+  useEffect(() => {
+    setFeedPosts(initialPosts);
+  }, [initialPosts]);
+
+  // Load posts with cursor pagination and topic/tab filters
+  const loadPosts = useCallback(async (reset: boolean = false, cursorToUse?: string) => {
+    if (reset) {
+      setIsRefreshing(true);
+    } else {
+      setIsLoadingMore(true);
     }
-    if (currentTab === 'following') {
-      if (!currentUser) return author?.role === 'advocate';
-      const isFollowing = currentUser.followingIds?.includes(post.authorId);
-      return isFollowing || post.authorId === currentUser.id;
+
+    try {
+      const topicParam = selectedTopic === 'All Topics' ? undefined : selectedTopic;
+      const res = await api.getPostsPaginated({
+        tab: currentTab,
+        topic: topicParam,
+        cursor: reset ? undefined : cursorToUse,
+        limit: 15
+      });
+
+      if (reset) {
+        setFeedPosts(res.posts);
+      } else {
+        setFeedPosts(prev => {
+          const existingIds = new Set(prev.map(p => p.id));
+          const uniqueNew = res.posts.filter(p => !existingIds.has(p.id));
+          return [...prev, ...uniqueNew];
+        });
+      }
+
+      setNextCursor(res.nextCursor);
+      setHasMore(res.hasMore);
+    } catch {
+      // Fallback: keep current posts
+    } finally {
+      setIsRefreshing(false);
+      setIsLoadingMore(false);
     }
-    if (currentTab === 'advocates') {
-      return author?.role === 'advocate' || author?.verificationType === 'bar_member';
+  }, [currentTab, selectedTopic]);
+
+  // Reload when tab or topic filter changes
+  useEffect(() => {
+    loadPosts(true);
+  }, [currentTab, selectedTopic, loadPosts]);
+
+  // Real-Time Server-Sent Events (SSE) stream listener
+  useEffect(() => {
+    let eventSource: EventSource | null = null;
+    try {
+      eventSource = new EventSource('/api/feed/stream');
+
+      eventSource.addEventListener('post:created', (e: MessageEvent) => {
+        try {
+          const payload = JSON.parse(e.data);
+          const newPost = payload.data as Post;
+          setFeedPosts(prev => {
+            if (prev.some(p => p.id === newPost.id)) return prev;
+            return [newPost, ...prev];
+          });
+        } catch {}
+      });
+
+      eventSource.addEventListener('post:liked', (e: MessageEvent) => {
+        try {
+          const payload = JSON.parse(e.data);
+          const { post: updatedPost } = payload.data;
+          setFeedPosts(prev =>
+            prev.map(p => (p.id === updatedPost.id ? { ...p, ...updatedPost } : p))
+          );
+        } catch {}
+      });
+
+      eventSource.addEventListener('post:reply', (e: MessageEvent) => {
+        try {
+          const payload = JSON.parse(e.data);
+          const { postId, reply } = payload.data;
+          setFeedPosts(prev =>
+            prev.map(p => {
+              if (p.id !== postId) return p;
+              const preview = p.previewReplies ? [...p.previewReplies, reply].slice(-2) : [reply];
+              return { ...p, repliesCount: (p.repliesCount || 0) + 1, previewReplies: preview };
+            })
+          );
+        } catch {}
+      });
+    } catch {
+      // EventSource fallback
     }
-    if (currentTab === 'official') {
-      return post.isOfficialAnnouncement || author?.role === 'institution' || author?.verificationType === 'official_institution';
-    }
-    if (currentTab === 'communities') {
-      return !!post.communityId;
-    }
-    return true;
-  });
+
+    return () => {
+      eventSource?.close();
+    };
+  }, []);
+
+  // Infinite Scroll Sentinel Intersection Observer
+  useEffect(() => {
+    if (!sentinelRef.current || !hasMore || isLoadingMore) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && nextCursor && !isLoadingMore) {
+          loadPosts(false, nextCursor);
+        }
+      },
+      { threshold: 0.1, rootMargin: '300px' }
+    );
+
+    observer.observe(sentinelRef.current);
+    return () => observer.disconnect();
+  }, [hasMore, isLoadingMore, nextCursor, loadPosts]);
 
   const handleStartPost = () => {
     if (!currentUser) {
       openLoginModal();
     } else {
-      setIsCreatePostModalOpen(true);
+      const textarea = document.querySelector('[data-composer-input]') as HTMLTextAreaElement | null;
+      if (textarea) {
+        textarea.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        textarea.focus();
+      } else {
+        setIsCreatePostModalOpen(true);
+      }
     }
   };
 
+  // Filter posts based on precision toggles (verified counsel only, media only)
+  const displayedPosts = feedPosts.filter(post => {
+    if (verifiedOnly) {
+      const author = users.find(u => u.id === post.authorId);
+      if (
+        !author ||
+        (!author.isVerified &&
+          author.role !== 'advocate' &&
+          author.role !== 'institution')
+      ) {
+        return false;
+      }
+    }
+    if (mediaOnly) {
+      const hasAttachments = Boolean(post.attachments && post.attachments.length > 0);
+      if (!hasAttachments) return false;
+    }
+    return true;
+  });
+
   return (
-    <div className="min-h-screen bg-slate-100/60 flex flex-col">
-      {/* Top Feed Navigation Tabs */}
-      <FeedTabs currentTab={currentTab} onTabChange={setCurrentTab} />
+    <div className="min-h-screen bg-[#F6F4EF] flex flex-col">
+      {/* Sticky Feed Navigation Tabs & Scope Filter Chips */}
+      <FeedHeader
+        currentTab={currentTab}
+        onTabChange={setCurrentTab}
+        selectedTopic={selectedTopic}
+        onSelectTopic={setSelectedTopic}
+        verifiedOnly={verifiedOnly}
+        onToggleVerifiedOnly={() => setVerifiedOnly(prev => !prev)}
+        mediaOnly={mediaOnly}
+        onToggleMediaOnly={() => setMediaOnly(prev => !prev)}
+      />
+
+      {/* Stories and Legal Bulletins Tray */}
+      <StoriesTray />
 
       {/* Main Post Composer */}
-      <PostComposer />
+      <PostComposer onPostCreated={() => loadPosts(true)} />
 
       {/* Posts Stream */}
-      <div className="flex-1 divide-y divide-slate-200">
-        {filteredPosts.length === 0 ? (
+      <div className="flex-1 divide-y divide-[#EAE5DC]">
+        {displayedPosts.length === 0 ? (
           <div className="p-4 sm:p-6 space-y-6 bg-slate-50/50">
             {/* Main Welcome & Purpose Card */}
             <div className="bg-white rounded-3xl border border-slate-200/90 p-6 sm:p-8 shadow-xs text-left relative overflow-hidden">
@@ -233,9 +389,41 @@ export const FeedView: React.FC = () => {
             )}
           </div>
         ) : (
-          filteredPosts.map(post => <PostCard key={post.id} post={post} />)
+          <>
+            {isRefreshing && (
+              <div className="divide-y divide-slate-200">
+                <PostCardSkeleton />
+                <PostCardSkeleton />
+              </div>
+            )}
+            {displayedPosts.map(post => (
+              <PostCard
+                key={post.id}
+                post={post}
+                onOpenVerticalVideo={(postId) => setVerticalVideoModalPostId(postId)}
+              />
+            ))}
+          </>
         )}
+
+        {/* Infinite Scroll Sentinel */}
+        <div ref={sentinelRef} className="py-2">
+          {isLoadingMore && (
+            <div className="divide-y divide-slate-200">
+              <PostCardSkeleton />
+            </div>
+          )}
+        </div>
       </div>
+
+      {/* Full-Screen Vertical Video (Shorts) Experience */}
+      {verticalVideoModalPostId && (
+        <VerticalVideoViewerModal
+          posts={displayedPosts}
+          initialPostId={verticalVideoModalPostId}
+          onClose={() => setVerticalVideoModalPostId(null)}
+        />
+      )}
     </div>
   );
 };

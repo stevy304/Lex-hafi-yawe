@@ -1,9 +1,12 @@
 import express, { Request, Response, NextFunction } from 'express';
 import { createServer as createViteServer } from 'vite';
 import path from 'path';
+import fs from 'node:fs';
+import crypto from 'node:crypto';
 import { fileURLToPath } from 'url';
+import multer from 'multer';
 import { db } from './server/db.js';
-import { User } from './src/types/index.js';
+import { User, MediaAsset, Story } from './src/types/index.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -63,6 +66,240 @@ async function startServer() {
   app.use(authMiddleware);
 
   const api = express.Router();
+
+  // --- Real-Time SSE Setup ---
+  interface SSEClient {
+    id: string;
+    userId?: string;
+    res: Response;
+  }
+  const sseClients: Map<string, SSEClient> = new Map();
+
+  function broadcastFeedEvent(event: string, payload: any) {
+    const message = `event: ${event}\ndata: ${JSON.stringify({ event, data: payload, timestamp: new Date().toISOString() })}\n\n`;
+    for (const [id, client] of sseClients.entries()) {
+      try {
+        client.res.write(message);
+      } catch {
+        sseClients.delete(id);
+      }
+    }
+  }
+
+  api.get('/feed/stream', (req: AuthenticatedRequest, res) => {
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache, no-transform');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no');
+    res.flushHeaders?.();
+
+    const clientId = `client_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+    const client: SSEClient = { id: clientId, userId: req.user?.id, res };
+    sseClients.set(clientId, client);
+
+    res.write(`event: connected\ndata: ${JSON.stringify({ clientId, timestamp: new Date().toISOString() })}\n\n`);
+
+    const heartbeat = setInterval(() => {
+      try {
+        res.write(': ping\n\n');
+      } catch {
+        clearInterval(heartbeat);
+        sseClients.delete(clientId);
+      }
+    }, 25000);
+
+    req.on('close', () => {
+      clearInterval(heartbeat);
+      sseClients.delete(clientId);
+    });
+  });
+
+  // --- Media Upload Infrastructure & HTTP Range Streaming ---
+  const UPLOADS_DIR = path.resolve(process.cwd(), 'data', 'uploads');
+  if (!fs.existsSync(UPLOADS_DIR)) {
+    fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+  }
+
+  const storage = multer.diskStorage({
+    destination: (_req, _file, cb) => {
+      cb(null, UPLOADS_DIR);
+    },
+    filename: (_req, file, cb) => {
+      const ext = path.extname(file.originalname).toLowerCase();
+      const safeName = `${Date.now()}_${crypto.randomBytes(6).toString('hex')}${ext}`;
+      cb(null, safeName);
+    }
+  });
+
+  const upload = multer({
+    storage,
+    limits: {
+      fileSize: 50 * 1024 * 1024 // 50MB maximum video limit
+    },
+    fileFilter: (_req, file, cb) => {
+      const allowedMimes = [
+        'image/jpeg', 'image/png', 'image/webp', 'image/gif',
+        'video/mp4', 'video/webm', 'video/quicktime',
+        'application/pdf', 'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'text/plain'
+      ];
+      if (allowedMimes.includes(file.mimetype)) {
+        cb(null, true);
+      } else {
+        cb(new Error(`Unsupported file type: ${file.mimetype}`));
+      }
+    }
+  });
+
+  function serveMediaWithRanges(req: Request, res: Response) {
+    const filename = path.basename(req.params.filename);
+    const filePath = path.join(UPLOADS_DIR, filename);
+
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ error: 'Media asset not found' });
+    }
+
+    const stat = fs.statSync(filePath);
+    const fileSize = stat.size;
+    const ext = path.extname(filename).toLowerCase();
+    const mimeMap: Record<string, string> = {
+      '.mp4': 'video/mp4',
+      '.webm': 'video/webm',
+      '.mov': 'video/quicktime',
+      '.jpg': 'image/jpeg',
+      '.jpeg': 'image/jpeg',
+      '.png': 'image/png',
+      '.webp': 'image/webp',
+      '.gif': 'image/gif',
+      '.pdf': 'application/pdf',
+      '.doc': 'application/msword',
+      '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    };
+    const contentType = mimeMap[ext] || 'application/octet-stream';
+
+    const range = req.headers.range;
+    if (range) {
+      const parts = range.replace(/bytes=/, '').split('-');
+      const start = parseInt(parts[0], 10);
+      const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
+
+      if (start >= fileSize || end >= fileSize) {
+        res.setHeader('Content-Range', `bytes */${fileSize}`);
+        return res.status(416).send('Requested range not satisfiable');
+      }
+
+      const chunksize = end - start + 1;
+      const fileStream = fs.createReadStream(filePath, { start, end });
+      res.writeHead(206, {
+        'Content-Range': `bytes ${start}-${end}/${fileSize}`,
+        'Accept-Ranges': 'bytes',
+        'Content-Length': chunksize,
+        'Content-Type': contentType,
+        'Cache-Control': 'public, max-age=86400, immutable'
+      });
+      fileStream.pipe(res);
+    } else {
+      res.writeHead(200, {
+        'Content-Length': fileSize,
+        'Content-Type': contentType,
+        'Accept-Ranges': 'bytes',
+        'Cache-Control': 'public, max-age=86400, immutable'
+      });
+      fs.createReadStream(filePath).pipe(res);
+    }
+  }
+
+  app.get('/uploads/:filename', serveMediaWithRanges);
+  api.get('/media/:filename', serveMediaWithRanges);
+
+  api.post('/media/upload', requireAuth, upload.single('file'), (req: AuthenticatedRequest, res) => {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No media file provided' });
+    }
+
+    const file = req.file;
+    const isVideo = file.mimetype.startsWith('video/');
+    const isImage = file.mimetype.startsWith('image/');
+    const mediaType = isVideo ? 'video' : isImage ? 'image' : 'document';
+
+    const duration = req.body.duration ? parseFloat(req.body.duration) : undefined;
+    const width = req.body.width ? parseInt(req.body.width, 10) : undefined;
+    const height = req.body.height ? parseInt(req.body.height, 10) : undefined;
+    const aspectRatio = req.body.aspectRatio || (width && height ? (height > width ? '4:5' : width === height ? '1:1' : '16:9') : undefined);
+    const posterUrl = req.body.posterUrl || undefined;
+
+    const mediaAsset: MediaAsset = {
+      id: `media_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`,
+      ownerId: req.user!.id,
+      mediaType,
+      mimeType: file.mimetype,
+      fileSize: file.size,
+      duration,
+      width,
+      height,
+      aspectRatio,
+      storagePath: file.filename,
+      publicUrl: `/uploads/${file.filename}`,
+      posterUrl,
+      uploadStatus: 'ready',
+      createdAt: new Date().toISOString()
+    };
+
+    db.saveMediaAsset(mediaAsset);
+
+    res.status(201).json({
+      mediaAsset,
+      url: `/uploads/${file.filename}`,
+      name: file.originalname,
+      size: file.size,
+      mimeType: file.mimetype
+    });
+  });
+
+  // --- Stories Endpoints ---
+
+  api.get('/stories', (req: AuthenticatedRequest, res) => {
+    const stories = db.getStories(req.user?.id);
+    res.json(stories);
+  });
+
+  api.post('/stories', requireAuth, (req: AuthenticatedRequest, res) => {
+    const { mediaType, mediaUrl, previewUrl, caption, duration, storyType, isOfficialGazetteAlert } = req.body;
+    if (!mediaType || !mediaUrl) {
+      return res.status(400).json({ error: 'mediaType and mediaUrl are required' });
+    }
+
+    try {
+      const story = db.createStory(req.user!.id, {
+        mediaType,
+        mediaUrl,
+        previewUrl,
+        caption,
+        duration: duration ? Math.min(Number(duration), 15) : undefined,
+        storyType,
+        isOfficialGazetteAlert: !!isOfficialGazetteAlert
+      });
+      broadcastFeedEvent('story:created', story);
+      res.status(201).json(story);
+    } catch (err: any) {
+      res.status(400).json({ error: err.message });
+    }
+  });
+
+  api.post('/stories/:id/view', requireAuth, (req: AuthenticatedRequest, res) => {
+    const result = db.recordStoryView(req.params.id, req.user!.id);
+    res.json(result);
+  });
+
+  api.delete('/stories/:id', requireAuth, (req: AuthenticatedRequest, res) => {
+    try {
+      const success = db.deleteStory(req.params.id, req.user!.id);
+      res.json({ success });
+    } catch (err: any) {
+      res.status(403).json({ error: err.message });
+    }
+  });
 
   // --- Auth Endpoints ---
 
@@ -218,8 +455,24 @@ async function startServer() {
 
   // --- Posts Endpoints ---
 
-  api.get('/posts', (req, res) => {
-    const { topic, tag, authorId, communityId, q } = req.query;
+  api.get('/posts', (req: AuthenticatedRequest, res) => {
+    const { topic, tag, authorId, communityId, q, tab, cursor, limit, format } = req.query;
+
+    if (cursor !== undefined || limit !== undefined || tab !== undefined || format === 'paginated') {
+      const result = db.getPostsPaginated({
+        topic: topic as string,
+        tag: tag as string,
+        authorId: authorId as string,
+        communityId: communityId as string,
+        query: q as string,
+        tab: tab as string,
+        currentUserId: req.user?.id,
+        cursor: cursor as string,
+        limit: limit ? parseInt(limit as string, 10) : 15
+      });
+      return res.json(result);
+    }
+
     const posts = db.getPosts({
       topic: topic as string,
       tag: tag as string,
@@ -253,6 +506,7 @@ async function startServer() {
         communityId,
         quotedPostId
       });
+      broadcastFeedEvent('post:created', post);
       res.status(201).json(post);
     } catch (err: any) {
       res.status(500).json({ error: err.message });
@@ -267,6 +521,7 @@ async function startServer() {
     try {
       const updated = db.updatePost(req.params.id, req.user!.id, content.trim());
       if (!updated) return res.status(404).json({ error: 'Post not found' });
+      broadcastFeedEvent('post:updated', updated);
       res.json(updated);
     } catch (err: any) {
       res.status(403).json({ error: err.message });
@@ -277,6 +532,7 @@ async function startServer() {
     try {
       const success = db.deletePost(req.params.id, req.user!.id);
       if (!success) return res.status(404).json({ error: 'Post not found' });
+      broadcastFeedEvent('post:deleted', { postId: req.params.id });
       res.json({ success: true });
     } catch (err: any) {
       res.status(403).json({ error: err.message });
@@ -286,6 +542,7 @@ async function startServer() {
   api.post('/posts/:id/like', requireAuth, (req: AuthenticatedRequest, res) => {
     try {
       const result = db.toggleLike(req.params.id, req.user!.id);
+      broadcastFeedEvent('post:liked', result);
       res.json(result);
     } catch (err: any) {
       res.status(400).json({ error: err.message });
@@ -295,6 +552,7 @@ async function startServer() {
   api.post('/posts/:id/repost', requireAuth, (req: AuthenticatedRequest, res) => {
     try {
       const result = db.toggleRepost(req.params.id, req.user!.id);
+      broadcastFeedEvent('post:reposted', result);
       res.json(result);
     } catch (err: any) {
       res.status(400).json({ error: err.message });
@@ -325,6 +583,7 @@ async function startServer() {
 
     try {
       const reply = db.createReply(req.params.id, req.user!.id, content.trim(), parentReplyId);
+      broadcastFeedEvent('post:reply', { postId: req.params.id, reply });
       res.status(201).json(reply);
     } catch (err: any) {
       res.status(400).json({ error: err.message });

@@ -14,7 +14,10 @@ import {
   ReportItem,
   VerificationApplication,
   AdminAuditLog,
-  UserRole
+  UserRole,
+  Story,
+  MediaAsset,
+  FeedPaginationResult
 } from '../types';
 
 const TOKEN_KEY = 'lex_hafi_auth_token';
@@ -177,6 +180,123 @@ export const api = {
 
     const query = params.toString() ? `?${params.toString()}` : '';
     return request<Post[]>(`/posts${query}`);
+  },
+
+  getPostsPaginated: async (filters?: {
+    topic?: string;
+    tag?: string;
+    authorId?: string;
+    communityId?: string;
+    q?: string;
+    tab?: string;
+    cursor?: string;
+    limit?: number;
+  }): Promise<FeedPaginationResult> => {
+    const params = new URLSearchParams();
+    params.set('format', 'paginated');
+    if (filters?.topic && filters.topic !== 'all') params.set('topic', filters.topic);
+    if (filters?.tag) params.set('tag', filters.tag);
+    if (filters?.authorId) params.set('authorId', filters.authorId);
+    if (filters?.communityId) params.set('communityId', filters.communityId);
+    if (filters?.q) params.set('q', filters.q);
+    if (filters?.tab) params.set('tab', filters.tab);
+    if (filters?.cursor) params.set('cursor', filters.cursor);
+    if (filters?.limit) params.set('limit', filters.limit.toString());
+
+    return request<FeedPaginationResult>(`/posts?${params.toString()}`);
+  },
+
+  uploadMedia: (
+    file: File,
+    options?: {
+      duration?: number;
+      width?: number;
+      height?: number;
+      aspectRatio?: string;
+      posterUrl?: string;
+      onProgress?: (percent: number, loaded: number, total: number) => void;
+    }
+  ): Promise<{ url: string; mediaAsset: MediaAsset; name: string; size: number; mimeType: string }> => {
+    return new Promise((resolve, reject) => {
+      const token = getStoredToken();
+      const xhr = new XMLHttpRequest();
+      const formData = new FormData();
+
+      formData.append('file', file);
+      if (options?.duration) formData.append('duration', options.duration.toString());
+      if (options?.width) formData.append('width', options.width.toString());
+      if (options?.height) formData.append('height', options.height.toString());
+      if (options?.aspectRatio) formData.append('aspectRatio', options.aspectRatio);
+      if (options?.posterUrl) formData.append('posterUrl', options.posterUrl);
+
+      xhr.open('POST', '/api/media/upload', true);
+      if (token) {
+        xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+      }
+
+      xhr.upload.onprogress = (event) => {
+        if (event.lengthComputable && options?.onProgress) {
+          const percent = Math.round((event.loaded / event.total) * 100);
+          options.onProgress(percent, event.loaded, event.total);
+        }
+      };
+
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          try {
+            const data = JSON.parse(xhr.responseText);
+            resolve(data);
+          } catch (e) {
+            reject(new Error('Invalid JSON response from server'));
+          }
+        } else {
+          try {
+            const err = JSON.parse(xhr.responseText);
+            reject(new Error(err.error || `Upload failed with status ${xhr.status}`));
+          } catch {
+            reject(new Error(`Upload failed with status ${xhr.status}`));
+          }
+        }
+      };
+
+      xhr.onerror = () => {
+        reject(new Error('Network error during media upload'));
+      };
+
+      xhr.send(formData);
+    });
+  },
+
+  // --- Stories ---
+  getStories: async (): Promise<Story[]> => {
+    return request<Story[]>('/stories');
+  },
+
+  createStory: async (storyData: {
+    mediaType: 'image' | 'video';
+    mediaUrl: string;
+    previewUrl?: string;
+    caption?: string;
+    duration?: number;
+    storyType?: Story['storyType'];
+    isOfficialGazetteAlert?: boolean;
+  }): Promise<Story> => {
+    return request<Story>('/stories', {
+      method: 'POST',
+      body: JSON.stringify(storyData)
+    });
+  },
+
+  recordStoryView: async (id: string): Promise<{ viewsCount: number }> => {
+    return request<{ viewsCount: number }>(`/stories/${id}/view`, {
+      method: 'POST'
+    });
+  },
+
+  deleteStory: async (id: string): Promise<{ success: boolean }> => {
+    return request<{ success: boolean }>(`/stories/${id}`, {
+      method: 'DELETE'
+    });
   },
 
   getPostById: async (id: string) => {

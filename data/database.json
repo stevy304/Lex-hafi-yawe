@@ -148,6 +148,12 @@
       "userId": "user_aline_advocate",
       "createdAt": "2026-10-10T05:38:01.451Z",
       "expiresAt": "2026-11-09T05:38:01.451Z"
+    },
+    {
+      "token": "b487ca6c23d041df8a40e71bafe961f1bf4b6320664473d91719c4e60e9ee012",
+      "userId": "user_clarisse_admin",
+      "createdAt": "2026-10-10T06:58:22.364Z",
+      "expiresAt": "2026-11-09T06:58:22.364Z"
     }
   ],
   "posts": [],
@@ -524,5 +530,19 @@
   "notifications": [],
   "reports": [],
   "verificationApplications": [],
-  "auditLogs": []
+  "auditLogs": [],
+  "stories": [],
+  "mediaAssets": [
+    {
+      "id": "media_1791615506374_37462675",
+      "ownerId": "user_clarisse_admin",
+      "mediaType": "document",
+      "mimeType": "text/plain",
+      "fileSize": 28,
+      "storagePath": "1791615506368_1ce570164cd7.txt",
+      "publicUrl": "/uploads/1791615506368_1ce570164cd7.txt",
+      "uploadStatus": "ready",
+      "createdAt": "2026-10-10T06:58:26.374Z"
+    }
+  ]
 }

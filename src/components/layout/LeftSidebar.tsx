@@ -42,6 +42,7 @@ export const LeftSidebar: React.FC = () => {
     setIsCreatePostModalOpen,
     openLoginModal,
     openRegisterModal,
+    navigateToLanding,
     logout,
     resetDemoData
   } = useApp();
@@ -91,26 +92,41 @@ export const LeftSidebar: React.FC = () => {
       openLoginModal();
       return;
     }
-    setIsCreatePostModalOpen(true);
+    const composerInput = document.querySelector('[data-composer-input]') as HTMLTextAreaElement | null;
+    if (activeView === 'feed' && composerInput) {
+      composerInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      composerInput.focus();
+    } else {
+      setActiveView('feed');
+      setTimeout(() => {
+        const input = document.querySelector('[data-composer-input]') as HTMLTextAreaElement | null;
+        if (input) {
+          input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          input.focus();
+        } else {
+          setIsCreatePostModalOpen(true);
+        }
+      }, 100);
+    }
   };
 
   return (
-    <aside className="w-64 xl:w-72 h-screen sticky top-0 flex flex-col justify-between border-r border-slate-200/90 bg-white px-3 py-4 select-none shrink-0 z-30">
+    <aside className="w-64 xl:w-72 h-screen sticky top-0 flex flex-col justify-between border-r border-[#E3DDD4] bg-[#FAF8F5] px-3 py-4 select-none shrink-0 z-30">
       {/* Top Header & Brand */}
       <div className="flex flex-col gap-3">
         <div className="flex items-center justify-between px-2">
           <button
             onClick={() => setActiveView('feed')}
-            className="flex items-center gap-2.5 text-left group"
+            className="flex items-center gap-2.5 text-left group cursor-pointer"
           >
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#102744] to-[#1D4ED8] flex items-center justify-center text-white shadow-md shadow-blue-900/10 group-hover:scale-105 transition-transform">
-              <Scale className="w-5 h-5 text-amber-300" />
+            <div className="w-10 h-10 rounded-xl bg-[#45525A] flex items-center justify-center text-white shadow-md shadow-[#45525A]/15 group-hover:scale-105 transition-transform border border-[#344047]">
+              <Scale className="w-5 h-5 text-[#D36B2E]" />
             </div>
             <div>
-              <span className="font-extrabold text-lg tracking-tight text-[#102744] block leading-none">
+              <span className="font-extrabold text-lg tracking-tight text-[#1E293B] block leading-none">
                 Lex Hafi Yawe
               </span>
-              <span className="text-[10px] font-medium tracking-wide text-slate-500 uppercase mt-0.5 block">
+              <span className="text-[10px] font-semibold tracking-wide text-[#576574] uppercase mt-0.5 block">
                 Rwanda Digital Justice
               </span>
             </div>
@@ -134,22 +150,22 @@ export const LeftSidebar: React.FC = () => {
               <button
                 key={item.id}
                 onClick={() => handleNavClick(item.id, item.requiresAuth)}
-                className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-all group ${
+                className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-all group cursor-pointer ${
                   isActive
-                    ? 'bg-blue-50 text-blue-800 font-bold'
-                    : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
+                    ? 'bg-[#EFE8DD] text-[#D36B2E] font-bold shadow-2xs'
+                    : 'text-[#45525A] hover:bg-[#F2ECE1] hover:text-[#1E293B]'
                 }`}
               >
                 <div className="flex items-center gap-3">
                   <Icon
                     className={`w-5 h-5 transition-transform group-hover:scale-110 ${
-                      isActive ? 'text-blue-700' : 'text-slate-500'
+                      isActive ? 'text-[#D36B2E]' : 'text-[#8796A0]'
                     }`}
                   />
                   <span>{item.label}</span>
                 </div>
                 {item.badge && item.badge > 0 ? (
-                  <span className="inline-flex items-center justify-center min-w-5 h-5 px-1.5 text-xs font-bold text-white bg-blue-600 rounded-full shadow-xs">
+                  <span className="inline-flex items-center justify-center min-w-5 h-5 px-1.5 text-xs font-bold text-white bg-[#D36B2E] rounded-full shadow-xs">
                     {item.badge}
                   </span>
                 ) : null}
@@ -162,7 +178,7 @@ export const LeftSidebar: React.FC = () => {
         <div className="px-2 mt-1">
           <button
             onClick={handleCreatePost}
-            className="w-full py-2.5 px-4 bg-[#1D4ED8] hover:bg-[#1e40af] active:bg-[#1e3a8a] text-white rounded-xl font-bold shadow-md shadow-blue-700/20 flex items-center justify-center gap-2 transition cursor-pointer"
+            className="w-full py-2.5 px-4 bg-[#D36B2E] hover:bg-[#B8551E] active:bg-[#9D4413] text-white rounded-xl font-bold shadow-md shadow-[#D36B2E]/25 flex items-center justify-center gap-2 transition cursor-pointer"
           >
             <Feather className="w-4 h-4" />
             <span>{t.btnCreatePost}</span>
@@ -220,7 +236,7 @@ export const LeftSidebar: React.FC = () => {
                   <span className="text-[10px] text-slate-400 block truncate">
                     {currentUser.email || `@${currentUser.username}`}
                   </span>
-                  <span className="text-[10px] font-semibold text-blue-700 capitalize mt-0.5 block">
+                  <span className="text-[10px] font-semibold text-[#D36B2E] capitalize mt-0.5 block">
                     Role: {currentUser.role === 'advocate' ? 'Advocate (RBA)' : currentUser.role}
                   </span>
                 </div>
@@ -267,7 +283,7 @@ export const LeftSidebar: React.FC = () => {
           <div className="p-2 space-y-2">
             <button
               onClick={openLoginModal}
-              className="w-full py-2 px-3 bg-blue-700 hover:bg-blue-800 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-xs cursor-pointer"
+              className="w-full py-2 px-3 bg-[#D36B2E] hover:bg-[#B8551E] text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-xs cursor-pointer"
             >
               <LogIn className="w-4 h-4" />
               <span>Sign In</span>
@@ -278,6 +294,12 @@ export const LeftSidebar: React.FC = () => {
             >
               <UserPlus className="w-4 h-4" />
               <span>Create Account</span>
+            </button>
+            <button
+              onClick={navigateToLanding}
+              className="w-full py-1.5 px-3 text-slate-500 hover:text-[#D36B2E] text-[11px] font-semibold transition text-center cursor-pointer"
+            >
+              ← Return to Welcome Page
             </button>
           </div>
         )}

@@ -1,5 +1,14 @@
-import React from 'react';
-import { Search, TrendingUp, ShieldCheck, HeartHandshake, ExternalLink, Calendar } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import {
+  Search,
+  TrendingUp,
+  ShieldCheck,
+  HeartHandshake,
+  ExternalLink,
+  Calendar,
+  Clock,
+  Radio
+} from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { useTranslation } from '../../utils/i18n';
 import { UserAvatar } from '../common/UserAvatar';
@@ -20,6 +29,41 @@ export const RightSidebar: React.FC = () => {
   } = useApp();
 
   const t = useTranslation(language);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // Platform detection for search shortcut
+  const isMac =
+    typeof navigator !== 'undefined' &&
+    /(Mac|iPhone|iPod|iPad)/i.test(navigator.platform || navigator.userAgent || '');
+  const shortcutLabel = isMac ? '⌘K' : 'Ctrl K';
+
+  // Live Rwanda Local Time (CAT: Africa/Kigali, UTC+2)
+  const [kigaliTime, setKigaliTime] = useState<string>('');
+  useEffect(() => {
+    const updateTime = () => {
+      const now = new Date();
+      setKigaliTime(
+        now.toLocaleTimeString('en-GB', {
+          timeZone: 'Africa/Kigali',
+          hour: '2-digit',
+          minute: '2-digit'
+        })
+      );
+    };
+    updateTime();
+    const interval = setInterval(updateTime, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Focus search input listener
+  useEffect(() => {
+    const handleFocusSearch = () => {
+      searchInputRef.current?.focus();
+      searchInputRef.current?.select();
+    };
+    window.addEventListener('focus-right-sidebar-search', handleFocusSearch);
+    return () => window.removeEventListener('focus-right-sidebar-search', handleFocusSearch);
+  }, []);
 
   // Suggested advocates that are not the current user
   const suggestedAdvocates = users
@@ -54,18 +98,45 @@ export const RightSidebar: React.FC = () => {
   };
 
   return (
-    <aside className="w-80 xl:w-96 h-screen sticky top-0 hidden lg:flex flex-col gap-4 border-l border-slate-200/90 bg-white/50 backdrop-blur-xs px-4 py-4 overflow-y-auto select-none shrink-0">
-      {/* Search Bar */}
-      <form onSubmit={handleSearchSubmit} className="relative">
-        <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-        <input
-          type="text"
-          value={searchQuery}
-          onChange={e => setSearchQuery(e.target.value)}
-          placeholder={t.searchPlaceholder}
-          className="w-full pl-10 pr-4 py-2 text-xs bg-slate-100 hover:bg-slate-200/80 focus:bg-white focus:ring-2 focus:ring-blue-600 focus:outline-none rounded-full transition border border-transparent focus:border-blue-600"
-        />
-      </form>
+    <aside className="w-80 xl:w-96 h-screen sticky top-0 hidden lg:flex flex-col gap-3.5 border-l border-[#E3DDD4] bg-[#FAF8F5] px-4 py-4 overflow-y-auto select-none shrink-0">
+      {/* Search Bar Container */}
+      <div className="space-y-1.5">
+        <form onSubmit={handleSearchSubmit} className="relative group">
+          <Search className="w-4 h-4 text-[#8796A0] group-focus-within:text-[#D36B2E] transition-colors absolute left-3.5 top-1/2 -translate-y-1/2" />
+          <input
+            id="right-sidebar-search-input"
+            ref={searchInputRef}
+            type="text"
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            placeholder={t.searchPlaceholder}
+            className="w-full pl-10 pr-16 py-2 text-xs bg-white hover:bg-slate-50 focus:bg-white focus:ring-2 focus:ring-[#D36B2E] focus:outline-none rounded-full transition border border-[#DDD6CB] focus:border-[#D36B2E] text-[#1E293B] placeholder:text-[#8796A0]"
+          />
+          <kbd
+            onClick={() => searchInputRef.current?.focus()}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-mono font-bold text-[#45525A] bg-[#F4EEE9] px-1.5 py-0.5 rounded border border-[#DDD6CB] cursor-pointer hover:border-[#B5ACA0] transition select-none"
+            title={`Focus Search (${shortcutLabel})`}
+          >
+            {shortcutLabel}
+          </kbd>
+        </form>
+
+        {/* Small Telemetry Status Line (IECMS Integrated + Kigali CAT Time + Live Stream) */}
+        <div className="flex items-center justify-between text-[10.5px] text-[#576574] px-1 font-medium">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+            <span className="font-semibold text-[#323C42] truncate">IECMS Integrated</span>
+            <span className="text-[#C4BCB0]">·</span>
+            <span className="text-[9.5px] px-1.5 py-0.2 rounded bg-emerald-50 text-emerald-700 font-bold border border-emerald-200/60 shrink-0 inline-flex items-center">
+              Live Stream
+            </span>
+          </div>
+          <div className="flex items-center gap-1 text-[#64748B] shrink-0">
+            <Clock className="w-3 h-3 text-[#576574] shrink-0" />
+            <span>Kigali {kigaliTime || '10:00'} (CAT)</span>
+          </div>
+        </div>
+      </div>
 
       {/* Free Legal Aid Callout (Access to Justice / MAJ) */}
       <div className="bg-gradient-to-br from-emerald-50 to-teal-50/70 border border-emerald-200/70 rounded-2xl p-3.5 shadow-xs">

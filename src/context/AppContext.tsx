@@ -44,6 +44,9 @@ interface AppContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   isAuthLoading: boolean;
+  isGuestBrowsing: boolean;
+  setIsGuestBrowsing: (val: boolean) => void;
+  navigateToLanding: () => void;
   setCurrentUser: (user: User | null) => Promise<void> | void;
   login: (identifier: string, password?: string) => Promise<boolean>;
   logout: () => Promise<void>;
@@ -213,6 +216,28 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Users and Auth State
   const [currentUser, setCurrentUserState] = useState<User | null>(null);
   const [users, setUsers] = useState<User[]>([]);
+  const [isGuestBrowsing, setIsGuestBrowsing] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('lex_hafi_guest_mode') === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  const setGuestBrowsingState = (val: boolean) => {
+    setIsGuestBrowsing(val);
+    try {
+      if (val) {
+        localStorage.setItem('lex_hafi_guest_mode', 'true');
+      } else {
+        localStorage.removeItem('lex_hafi_guest_mode');
+      }
+    } catch {}
+  };
+
+  const navigateToLanding = () => {
+    setGuestBrowsingState(false);
+  };
 
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authModalMode, setAuthModalMode] = useState<'login' | 'register'>('login');
@@ -411,6 +436,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     try {
       const res = await api.login(identifier, password);
       localStorage.removeItem('lex_hafi_logged_out');
+      setGuestBrowsingState(false);
       setCurrentUserState(res.user);
       setIsAuthModalOpen(false);
       await loadUserData(res.user);
@@ -430,6 +456,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       await api.logout();
     } catch {}
     localStorage.setItem('lex_hafi_logged_out', 'true');
+    setGuestBrowsingState(false);
     setCurrentUserState(null);
     setAppointments([]);
     setConversations([]);
@@ -467,6 +494,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         location: data.location
       });
       localStorage.removeItem('lex_hafi_logged_out');
+      setGuestBrowsingState(false);
       setCurrentUserState(res.user);
       setIsAuthModalOpen(false);
       await loadUserData(res.user);
@@ -949,6 +977,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         isAuthenticated: !!currentUser,
         isLoading,
         isAuthLoading,
+        isGuestBrowsing,
+        setIsGuestBrowsing: setGuestBrowsingState,
+        navigateToLanding,
         setCurrentUser,
         login,
         logout,
