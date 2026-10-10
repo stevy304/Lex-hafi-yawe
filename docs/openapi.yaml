@@ -1,0 +1,176 @@
+openapi: 3.0.3
+info:
+  title: Lex Hafi Yawe Rwanda - Account & Digital Justice API
+  version: 2026.1.0
+  description: API specifications for account lifecycle, onboarding, advocate verification, and security.
+paths:
+  /api/auth/register:
+    post:
+      summary: Register account with email
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [method, email, password]
+              properties:
+                method:
+                  type: string
+                  enum: [email]
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                captchaToken:
+                  type: string
+      responses:
+        '201':
+          description: Registration initiated (anti-enumeration response)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+
+  /api/auth/email/verify/confirm:
+    post:
+      summary: Confirm 6-digit email verification code
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code]
+              properties:
+                code:
+                  type: string
+                email:
+                  type: string
+      responses:
+        '200':
+          description: Email verified and session created
+
+  /api/auth/handle-available:
+    get:
+      summary: Check handle availability
+      parameters:
+        - name: handle
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  available:
+                    type: boolean
+                  suggestions:
+                    type: array
+                    items:
+                      type: string
+
+  /api/legal/versions:
+    get:
+      summary: Get current active terms and privacy version
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  terms:
+                    type: string
+                  privacy:
+                    type: string
+                  minAge:
+                    type: integer
+
+  /api/consents:
+    post:
+      summary: Record user consent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [termsVersion, privacyVersion, ageConfirmed]
+              properties:
+                termsVersion:
+                  type: string
+                privacyVersion:
+                  type: string
+                ageConfirmed:
+                  type: boolean
+                marketing:
+                  type: object
+      responses:
+        '200':
+          description: Consent recorded
+
+  /api/onboarding:
+    get:
+      summary: Fetch current onboarding progress
+    patch:
+      summary: Update onboarding step progress
+
+  /api/onboarding/complete:
+    post:
+      summary: Mark onboarding completed
+
+  /api/auth/sessions:
+    get:
+      summary: List active login sessions
+  /api/auth/sessions/{id}:
+    delete:
+      summary: Revoke single session
+  /api/auth/sessions/revoke-others:
+    post:
+      summary: Revoke all other active sessions
+
+  /api/users/me/export:
+    post:
+      summary: Request data export archive
+  /api/users/me/export/status:
+    get:
+      summary: Poll export generation status
+
+  /api/users/me:
+    patch:
+      summary: Update profile
+    delete:
+      summary: Request account deletion (30-day grace)
+
+  /api/advocates/apply:
+    post:
+      summary: Submit advocate bar certification application
+  /api/advocates/application:
+    get:
+      summary: Get own advocate application status
+
+  /api/admin/advocate-applications:
+    get:
+      summary: (Admin) Review advocate applications queue
+  /api/admin/advocate-applications/{id}/decision:
+    post:
+      summary: (Admin) Approve or reject advocate credentials
+  /api/admin/reports:
+    get:
+      summary: (Admin) List flagged content reports
+  /api/admin/audit:
+    get:
+      summary: (Admin) Read audit log entries
+
+  /api/support:
+    post:
+      summary: Submit contact message to legal support

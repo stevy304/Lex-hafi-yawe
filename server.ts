@@ -213,7 +213,7 @@ async function startServer() {
   app.get('/uploads/:filename', serveMediaWithRanges);
   api.get('/media/:filename', serveMediaWithRanges);
 
-  api.post('/media/upload', requireAuth, upload.single('file'), (req: AuthenticatedRequest, res) => {
+  api.post('/media/upload', requireAuth, upload.single('file') as any, (req: AuthenticatedRequest, res) => {
     if (!req.file) {
       return res.status(400).json({ error: 'No media file provided' });
     }

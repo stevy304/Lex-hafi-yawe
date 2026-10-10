@@ -208,7 +208,49 @@ interface AppContextType {
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
-export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+function mapAuthUserToAppUser(authUser: any, existingUsers: User[] = []): User {
+  const found = existingUsers.find(
+    (u) => u.id === authUser.id || u.username === authUser.handle || (authUser.email && u.email === authUser.email)
+  );
+  if (found) {
+    return {
+      ...found,
+      name: authUser.name || found.name,
+      role: (authUser.role === 'advocate' ? 'advocate' : authUser.role === 'admin' ? 'admin' : found.role) as any,
+      isVerified: authUser.role === 'advocate' || authUser.verifiedAdvocate || found.isVerified,
+    };
+  }
+
+  return {
+    id: authUser.id || `usr_${Date.now()}`,
+    name: authUser.name || 'Lex User',
+    username: authUser.handle || 'lexuser',
+    avatar: authUser.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+    role: (authUser.role === 'advocate' ? 'advocate' : authUser.role === 'admin' ? 'admin' : 'citizen') as any,
+    isVerified: authUser.role === 'advocate' || authUser.verifiedAdvocate || authUser.role === 'admin',
+    verificationType: authUser.role === 'advocate' ? 'bar_member' : authUser.role === 'admin' ? 'official_institution' : undefined,
+    bio: authUser.bio || 'Advocating for digital justice and legal literacy in Rwanda.',
+    location: authUser.district ? `${authUser.district}, Rwanda` : 'Kigali, Rwanda',
+    languages: ['en', 'rw'],
+    joinedDate: new Date().toISOString(),
+    followersCount: 84,
+    followingCount: 65,
+    postsCount: 5,
+    practiceAreas: authUser.role === 'advocate' ? ['Civil Litigation', 'Land Law', 'Commercial Law'] : undefined,
+    barRollNumber: authUser.role === 'advocate' ? 'RBA/2023/118' : undefined,
+    firmName: authUser.role === 'advocate' ? 'Kigali Legal Associates' : undefined,
+    email: authUser.email,
+    phone: authUser.phone,
+  };
+}
+
+export interface AppProviderProps {
+  children: React.ReactNode;
+  initialAuthUser?: any;
+  onLogout?: () => void;
+}
+
+export const AppProvider: React.FC<AppProviderProps> = ({ children, initialAuthUser, onLogout }) => {
   // Global loading states
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthLoading, setIsAuthLoading] = useState(false);
@@ -237,6 +279,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const navigateToLanding = () => {
     setGuestBrowsingState(false);
+    if (onLogout) {
+      onLogout();
+    }
   };
 
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
@@ -360,23 +405,31 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setIsLoading(true);
       await loadPublicData();
 
-      const existingToken = getStoredToken();
-      if (existingToken) {
-        try {
-          const res = await api.getCurrentUser();
-          if (isMounted && res.user) {
-            setCurrentUserState(res.user);
-            await loadUserData(res.user);
+      if (initialAuthUser) {
+        const mapped = mapAuthUserToAppUser(initialAuthUser);
+        if (isMounted) {
+          setCurrentUserState(mapped);
+          await loadUserData(mapped);
+        }
+      } else {
+        const existingToken = getStoredToken();
+        if (existingToken) {
+          try {
+            const res = await api.getCurrentUser();
+            if (isMounted && res.user) {
+              setCurrentUserState(res.user);
+              await loadUserData(res.user);
+            }
+          } catch {
+            // Token expired or invalid
+            if (isMounted) {
+              setCurrentUserState(null);
+            }
           }
-        } catch {
-          // Token expired or invalid
+        } else {
           if (isMounted) {
             setCurrentUserState(null);
           }
-        }
-      } else {
-        if (isMounted) {
-          setCurrentUserState(null);
         }
       }
 
@@ -388,7 +441,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return () => {
       isMounted = false;
     };
-  }, [loadPublicData, loadUserData]);
+  }, [loadPublicData, loadUserData, initialAuthUser]);
 
   // Load messages when activeConversationId changes
   useEffect(() => {
@@ -466,6 +519,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setVerificationApplications([]);
     setAuditLogs([]);
     setActiveView('feed');
+    if (onLogout) {
+      onLogout();
+    }
   };
 
   // Register handler

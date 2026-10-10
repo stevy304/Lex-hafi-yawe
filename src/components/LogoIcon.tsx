@@ -1,0 +1,40 @@
+import React from 'react';
+
+interface LogoIconProps {
+  className?: string;
+  size?: number;
+  ariaHidden?: boolean;
+}
+
+export const LogoIcon: React.FC<LogoIconProps> = ({
+  className,
+  size,
+  ariaHidden = true,
+}) => {
+  return (
+    <svg
+      viewBox="0 0 120 120"
+      width={size}
+      height={size}
+      className={className}
+      aria-hidden={ariaHidden}
+      fill="none"
+    >
+      <rect width="120" height="120" rx="28" fill="#12305A" />
+      <rect
+        x="3"
+        y="3"
+        width="114"
+        height="114"
+        rx="25"
+        fill="none"
+        stroke="#C9A24B"
+        strokeOpacity=".45"
+        strokeWidth="2"
+      />
+      <path d="M34 26H46V82H92V94H34Z" fill="#F4EFE3" />
+      <path d="M56 26H68L92 72H80Z" fill="#C9A24B" />
+      <path d="M80 26H92L68 72H56Z" fill="#C9A24B" />
+    </svg>
+  );
+};

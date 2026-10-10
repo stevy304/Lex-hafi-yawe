@@ -1,41 +1,152 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
-
 import React from 'react';
-import { AppProvider, useApp } from './context/AppContext';
-import { AppLayout } from './components/layout/AppLayout';
-import { LandingSignInPage } from './components/auth/LandingSignInPage';
-
-const AppContent: React.FC = () => {
-  const { currentUser, isGuestBrowsing, isLoading } = useApp();
-
-  // Show subtle initial loader during initial token verification
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-[#000000] text-white flex flex-col items-center justify-center p-4">
-        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#45525A] to-[#242C31] border border-white/15 flex items-center justify-center shadow-lg shadow-black/20 mb-4 animate-pulse">
-          <span className="text-xl font-bold text-[#D2691E]">⚖</span>
-        </div>
-        <div className="text-sm font-semibold tracking-wide text-white/80">Lex Hafi Yawe</div>
-        <div className="text-xs text-white/40 mt-1">Rwanda Digital Justice Platform</div>
-      </div>
-    );
-  }
-
-  // If not logged in and not explicitly browsing as guest, render the landing/sign-in page
-  if (!currentUser && !isGuestBrowsing) {
-    return <LandingSignInPage />;
-  }
-
-  return <AppLayout />;
-};
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider } from './auth/AuthContext';
+import { GuestOnly, RequireAuth, RequireOnboarded, RequireAdmin } from './auth/guards';
+import { LandingPage } from './components/LandingPage';
+import { SignupWizard } from './features/signup/SignupWizard';
+import { OnboardingWizard } from './features/onboarding/OnboardingWizard';
+import { HomePage } from './pages/HomePage';
+import { SettingsPage } from './features/settings/SettingsPage';
+import { ApplyAdvocatePage } from './features/advocate/ApplyAdvocatePage';
+import { AdminDashboardPage } from './features/admin/AdminDashboardPage';
+import { AboutPage } from './features/static/AboutPage';
+import { HelpPage } from './features/static/HelpPage';
+import { TermsPage } from './features/static/TermsPage';
+import { PrivacyPage } from './features/static/PrivacyPage';
+import { VerifyEmailPage } from './features/static/VerifyEmailPage';
+import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
+import { ResetPasswordPage } from './features/static/ResetPasswordPage';
+import { DebugPage } from './features/debug/DebugPage';
 
 export default function App() {
   return (
-    <AppProvider>
-      <AppContent />
-    </AppProvider>
+    <BrowserRouter>
+      <AuthProvider>
+        <Routes>
+          {/* Guest Only Routes */}
+          <Route
+            path="/"
+            element={
+              <GuestOnly>
+                <LandingPage />
+              </GuestOnly>
+            }
+          />
+          <Route
+            path="/signup/*"
+            element={
+              <GuestOnly>
+                <SignupWizard />
+              </GuestOnly>
+            }
+          />
+          <Route
+            path="/signup"
+            element={
+              <GuestOnly>
+                <SignupWizard />
+              </GuestOnly>
+            }
+          />
+          <Route
+            path="/forgot-password"
+            element={
+              <GuestOnly>
+                <ForgotPasswordPage />
+              </GuestOnly>
+            }
+          />
+          <Route
+            path="/reset-password"
+            element={
+              <GuestOnly>
+                <ResetPasswordPage />
+              </GuestOnly>
+            }
+          />
+
+          {/* Any / Public / Verification */}
+          <Route path="/verify-email" element={<VerifyEmailPage />} />
+          <Route path="/terms" element={<TermsPage />} />
+          <Route path="/privacy" element={<PrivacyPage />} />
+          <Route path="/help" element={<HelpPage />} />
+          <Route path="/about" element={<AboutPage />} />
+          <Route path="/__debug" element={<DebugPage />} />
+
+          {/* Onboarding Wizard (signed in, incomplete onboarding) */}
+          <Route
+            path="/onboarding/*"
+            element={
+              <RequireAuth>
+                <OnboardingWizard />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/onboarding"
+            element={
+              <RequireAuth>
+                <OnboardingWizard />
+              </RequireAuth>
+            }
+          />
+
+          {/* Fully Onboarded Protected Product Routes */}
+          <Route
+            path="/home"
+            element={
+              <RequireOnboarded>
+                <HomePage />
+              </RequireOnboarded>
+            }
+          />
+          <Route
+            path="/settings/*"
+            element={
+              <RequireOnboarded>
+                <SettingsPage />
+              </RequireOnboarded>
+            }
+          />
+          <Route
+            path="/settings"
+            element={
+              <RequireOnboarded>
+                <SettingsPage />
+              </RequireOnboarded>
+            }
+          />
+          <Route
+            path="/apply"
+            element={
+              <RequireOnboarded>
+                <ApplyAdvocatePage />
+              </RequireOnboarded>
+            }
+          />
+
+          {/* Admin Protected Routes */}
+          <Route
+            path="/admin/*"
+            element={
+              <RequireAdmin>
+                <AdminDashboardPage />
+              </RequireAdmin>
+            }
+          />
+          <Route
+            path="/admin"
+            element={
+              <RequireAdmin>
+                <AdminDashboardPage />
+              </RequireAdmin>
+            }
+          />
+
+          {/* Catch-all */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </AuthProvider>
+    </BrowserRouter>
   );
 }
