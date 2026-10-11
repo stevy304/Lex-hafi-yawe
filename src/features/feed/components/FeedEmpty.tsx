@@ -42,6 +42,16 @@ export const FeedEmpty: React.FC<FeedEmptyProps> = ({
     title = labels.followingTitle || "You're not following anyone yet";
     description = labels.followingDesc || 'Follow verified advocates and statutory institutions to populate your timeline.';
     actionLabel = labels.followingAction || 'Find advocates';
+  } else if (tab === 'professionals') {
+    icon = <Users className="w-6 h-6 text-[var(--accent)]" />;
+    title = 'No posts from legal professionals yet';
+    description = 'Verified advocates and legal advisors will appear here as they share updates.';
+    actionLabel = 'Explore advocates';
+  } else if (tab === 'official') {
+    icon = <Sparkles className="w-6 h-6 text-[var(--accent)]" />;
+    title = 'No official announcements yet';
+    description = 'Statutory bodies, MINIJUST, and court gazettes will appear here.';
+    actionLabel = 'View official gazette';
   } else if (tab === 'communities') {
     icon = <MessageSquare className="w-6 h-6 text-[var(--accent)]" />;
     title = labels.communityTitle || 'Join a community to see its posts';

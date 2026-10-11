@@ -17,7 +17,8 @@ import {
   VerificationApplication,
   AdminAuditLog,
   Language,
-  PostAttachment
+  PostAttachment,
+  Story
 } from '../types';
 import { api, getStoredToken } from '../api/client';
 
@@ -204,6 +205,20 @@ interface AppContextType {
   setReportTarget: (target: { type: 'post' | 'user' | 'service'; id: string; preview: string } | null) => void;
   resetDemoData: () => Promise<void>;
   refreshAllData: () => Promise<void>;
+
+  // Stories & Feed Post Action Helpers
+  stories: Story[];
+  setStories: React.Dispatch<React.SetStateAction<Story[]>>;
+  isCreateStoryModalOpen: boolean;
+  setIsCreateStoryModalOpen: (val: boolean) => void;
+  activeStoryModal: Story | null;
+  setActiveStoryModal: (story: Story | null) => void;
+  openCreateStoryModal: () => void;
+  openStoryModal: (story: Story) => void;
+  setSelectedPostId: (postId: string | null) => void;
+  likePost: (postId: string) => Promise<void>;
+  bookmarkPost: (postId: string) => Promise<void>;
+  reportPost: (postId: string, reason?: string, details?: string) => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -331,17 +346,23 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children, initialAuthU
   const [quoteTargetPost, setQuoteTargetPost] = useState<Post | null>(null);
   const [reportTarget, setReportTarget] = useState<{ type: 'post' | 'user' | 'service'; id: string; preview: string } | null>(null);
 
+  // Stories state
+  const [stories, setStories] = useState<Story[]>([]);
+  const [isCreateStoryModalOpen, setIsCreateStoryModalOpen] = useState(false);
+  const [activeStoryModal, setActiveStoryModal] = useState<Story | null>(null);
+
   // Fetch Public Data
   const loadPublicData = useCallback(async () => {
     try {
-      const [u, p, c, s, aid, l, n] = await Promise.all([
+      const [u, p, c, s, aid, l, n, st] = await Promise.all([
         api.getUsers(),
         api.getPosts(),
         api.getCommunities(),
         api.getLegalServices(),
         api.getLegalAidProviders(),
         api.getLaws(),
-        api.getLegalNews()
+        api.getLegalNews(),
+        api.getStories().catch(() => [])
       ]);
 
       setUsers(u);
@@ -351,6 +372,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children, initialAuthU
       setLegalAidProviders(aid);
       setLaws(l);
       setLegalNews(n);
+      setStories(st || []);
     } catch (err) {
       console.error('Failed to load initial public data from backend:', err);
     }
@@ -359,26 +381,66 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children, initialAuthU
   // Fetch User-Specific Authenticated Data
   const loadUserData = useCallback(async (user: User) => {
     try {
-      const [apts, convs, notifs] = await Promise.all([
-        api.getAppointments(),
-        api.getConversations(),
-        api.getNotifications()
-      ]);
+      // Ensure active token exists for this user session
+      let token = getStoredToken();
+      if (!token) {
+        try {
+          const syncRes = await api.syncSession(user);
+          token = syncRes.token;
+        } catch {
+          // If server session sync is unavailable, skip protected calls to prevent 401s
+          return;
+        }
+      }
 
-      setAppointments(apts);
-      setConversations(convs);
-      setNotifications(notifs);
+      if (!token) return;
 
-      if (convs.length > 0 && !activeConversationId) {
+      let apts: Appointment[] = [];
+      let convs: Conversation[] = [];
+      let notifs: Notification[] = [];
+
+      try {
+        [apts, convs, notifs] = await Promise.all([
+          api.getAppointments(),
+          api.getConversations(),
+          api.getNotifications()
+        ]);
+      } catch (authErr: any) {
+        // If token expired or invalid on server, re-sync session and retry once
+        if (authErr?.message?.includes('Authentication required') || authErr?.message?.includes('401')) {
+          try {
+            const syncRes = await api.syncSession(user);
+            if (syncRes?.token) {
+              [apts, convs, notifs] = await Promise.all([
+                api.getAppointments(),
+                api.getConversations(),
+                api.getNotifications()
+              ]);
+            }
+          } catch {
+            return;
+          }
+        } else {
+          throw authErr;
+        }
+      }
+
+      setAppointments(apts || []);
+      setConversations(convs || []);
+      setNotifications(notifs || []);
+
+      if (convs && convs.length > 0 && !activeConversationId) {
         setActiveConversationId(convs[0].id);
-        const msgs = await api.getMessages(convs[0].id);
-        setMessages(msgs);
+        try {
+          const msgs = await api.getMessages(convs[0].id);
+          setMessages(msgs || []);
+        } catch {}
       }
 
       // Verifications (all for admin, own for advocate)
       try {
         const verifs = await api.getVerifications();
-        setVerificationApplications(verifs);
+        setVerificationApplications(verifs || []);
       } catch {}
 
       // Admin only collections
@@ -388,12 +450,12 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children, initialAuthU
             api.getReports(),
             api.getAuditLogs()
           ]);
-          setReports(reps);
-          setAuditLogs(logs);
+          setReports(reps || []);
+          setAuditLogs(logs || []);
         } catch {}
       }
     } catch (err) {
-      console.error('Failed to load authenticated user data:', err);
+      console.warn('Authenticated user data could not be refreshed:', err);
     }
   }, [activeConversationId]);
 
@@ -409,6 +471,11 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children, initialAuthU
         const mapped = mapAuthUserToAppUser(initialAuthUser);
         if (isMounted) {
           setCurrentUserState(mapped);
+          if (!getStoredToken()) {
+            try {
+              await api.syncSession(mapped);
+            } catch {}
+          }
           await loadUserData(mapped);
         }
       } else {
@@ -1120,7 +1187,50 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children, initialAuthU
         reportTarget,
         setReportTarget,
         resetDemoData,
-        refreshAllData
+        refreshAllData,
+
+        stories,
+        setStories,
+        isCreateStoryModalOpen,
+        setIsCreateStoryModalOpen,
+        activeStoryModal,
+        setActiveStoryModal,
+        openCreateStoryModal: () => {
+          if (!currentUser) {
+            openLoginModal();
+            return;
+          }
+          setIsCreateStoryModalOpen(true);
+        },
+        openStoryModal: (story: Story) => {
+          setActiveStoryModal(story);
+        },
+        setSelectedPostId: (postId: string | null) => {
+          if (!postId) {
+            setSelectedPostForThread(null);
+            return;
+          }
+          const found = posts.find((p) => p.id === postId);
+          if (found) {
+            setSelectedPostForThread(found);
+          } else {
+            api.getPostById(postId).then((p) => setSelectedPostForThread(p)).catch(() => {});
+          }
+        },
+        likePost: async (postId: string) => {
+          await toggleLikePost(postId);
+        },
+        bookmarkPost: async (postId: string) => {
+          await toggleBookmarkPost(postId);
+        },
+        reportPost: async (postId: string, _reason?: string, details?: string) => {
+          const post = posts.find((p) => p.id === postId);
+          setReportTarget({
+            type: 'post',
+            id: postId,
+            preview: post?.content?.slice(0, 80) || details || 'Reported content',
+          });
+        }
       }}
     >
       {children}

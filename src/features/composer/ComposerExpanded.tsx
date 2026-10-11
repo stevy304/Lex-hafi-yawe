@@ -14,6 +14,7 @@ import { AttachmentTray, ImageAttachment } from './AttachmentTray';
 import { CitationPalette } from './CitationPalette';
 import { ConfidentialOverlay } from './ConfidentialOverlay';
 import { findConfidentialMatches, evaluateConfidentialRisk } from './confidential';
+import { useDraft } from './useDraft';
 
 interface ComposerExpandedProps {
   currentUser: User | null;
@@ -28,12 +29,17 @@ export const ComposerExpanded: React.FC<ComposerExpandedProps> = ({
   onPostSuccess,
   initialTopic = 'General legal',
 }) => {
-  const [content, setContent] = useState('');
-  const [visibility, setVisibility] = useState<'public' | 'followers'>('public');
-  const [topic, setTopic] = useState(initialTopic);
+  const { draft, updateContent, updateVisibility, updateTopic, clearDraft } = useDraft({
+    topic: initialTopic,
+  });
+  const content = draft.content;
+  const visibility = draft.visibility;
+  const topic = draft.topic;
+
   const [images, setImages] = useState<ImageAttachment[]>([]);
   const [documents, setDocuments] = useState<PostDocumentItem[]>([]);
   const [citations, setCitations] = useState<PostCitation[]>([]);
+  const [docError, setDocError] = useState<string | null>(null);
 
   const [isSending, setIsSending] = useState(false);
   const [allowBypassWarning, setAllowBypassWarning] = useState(false);
@@ -119,6 +125,7 @@ export const ComposerExpanded: React.FC<ComposerExpandedProps> = ({
   };
 
   const handleDocPicked = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setDocError(null);
     const files = e.target.files;
     if (!files) return;
     const remainingSlots = 2 - documents.length;
@@ -126,7 +133,7 @@ export const ComposerExpanded: React.FC<ComposerExpandedProps> = ({
 
     filesToAdd.forEach((file) => {
       if (file.size > 8 * 1024 * 1024) {
-        alert('Document exceeds 8 MB limit.');
+        setDocError('Document exceeds 8 MB limit.');
         return;
       }
       const newDoc: PostDocumentItem = {
@@ -168,6 +175,7 @@ export const ComposerExpanded: React.FC<ComposerExpandedProps> = ({
       }
 
       const created: Post = await res.json();
+      clearDraft();
       onPostSuccess(created);
       onCollapse();
     } catch {
@@ -192,6 +200,7 @@ export const ComposerExpanded: React.FC<ComposerExpandedProps> = ({
         media: images.map((img) => ({ url: img.url, alt: img.alt })),
         lang: 'en',
       };
+      clearDraft();
       onPostSuccess(mockPost);
       onCollapse();
     } finally {
@@ -211,8 +220,8 @@ export const ComposerExpanded: React.FC<ComposerExpandedProps> = ({
         {/* Row 1: Visibility & Topic popover buttons */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <VisibilityMenu value={visibility} onChange={setVisibility} />
-            <TopicMenu value={topic} onChange={setTopic} />
+            <VisibilityMenu value={visibility} onChange={updateVisibility} />
+            <TopicMenu value={topic} onChange={updateTopic} />
           </div>
           <button
             type="button"
@@ -235,9 +244,10 @@ export const ComposerExpanded: React.FC<ComposerExpandedProps> = ({
           <ConfidentialOverlay text={content} matches={confidentialMatches} />
           <textarea
             ref={textareaRef}
+            data-composer-input="true"
             value={content}
             onChange={(e) => {
-              setContent(e.target.value);
+              updateContent(e.target.value);
               setAllowBypassWarning(false);
             }}
             placeholder="Share an update or ask a question"
@@ -403,6 +413,7 @@ export const ComposerExpanded: React.FC<ComposerExpandedProps> = ({
                 type="button"
                 onClick={() => {
                   setShowDiscardConfirm(false);
+                  clearDraft();
                   onCollapse();
                 }}
                 className="px-4 py-2 rounded-lg bg-[var(--danger)] text-white text-[13px] font-medium cursor-pointer"
@@ -411,6 +422,12 @@ export const ComposerExpanded: React.FC<ComposerExpandedProps> = ({
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {docError && (
+        <div className="mt-2 text-[12px] text-[var(--danger)] font-medium">
+          {docError}
         </div>
       )}
 

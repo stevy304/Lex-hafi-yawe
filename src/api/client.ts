@@ -95,6 +95,15 @@ export const api = {
     return data;
   },
 
+  syncSession: async (user: any) => {
+    const data = await request<{ user: User; token: string }>('/auth/session', {
+      method: 'POST',
+      body: JSON.stringify({ user })
+    });
+    setStoredToken(data.token);
+    return data;
+  },
+
   register: async (userData: {
     name: string;
     username: string;

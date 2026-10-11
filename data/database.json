@@ -75,6 +75,25 @@
       "password": "password123",
       "followers": [],
       "following": []
+    },
+    {
+      "id": "usr_demo_citizen",
+      "name": "Demo Citizen",
+      "username": "user_1791710619851",
+      "role": "citizen",
+      "isVerified": false,
+      "email": "user@lex.rw",
+      "phone": "+250788000000",
+      "bio": "",
+      "location": "Kigali, Rwanda",
+      "languages": [
+        "Kinyarwanda",
+        "English"
+      ],
+      "joinedDate": "2026-10-11T09:23:39.851Z",
+      "followersCount": 0,
+      "followingCount": 0,
+      "postsCount": 0
     }
   ],
   "credentials": [
@@ -154,6 +173,12 @@
       "userId": "user_clarisse_admin",
       "createdAt": "2026-10-10T06:58:22.364Z",
       "expiresAt": "2026-11-09T06:58:22.364Z"
+    },
+    {
+      "token": "1ad4fea6f3dcbf9a31a821acd0aff08092b9ad8587206b699c7d50ce51c5391b",
+      "userId": "usr_demo_citizen",
+      "createdAt": "2026-10-11T09:23:39.852Z",
+      "expiresAt": "2026-11-10T09:23:39.852Z"
     }
   ],
   "posts": [],

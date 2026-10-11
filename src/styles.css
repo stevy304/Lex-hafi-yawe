@@ -11,7 +11,18 @@
   --ok-bg:rgba(29,158,117,.14);
   --ok-text:#4FD1A5;
   --like:#F4546A;
-  box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+  --col-w: 680px;
+  --wide-w: 880px;
+  --doc-w: 720px;
+  --right-w: 360px;
+  --sidebar-w: clamp(240px, 18vw, 300px);
+  --list-w: 360px;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --kb-h: 0px;
+  box-sizing:border-box;padding-top:var(--safe-top);padding-bottom:var(--safe-bottom);
 }
 @media (prefers-color-scheme: light){
   :root:not([data-theme="dark"]){
@@ -47,6 +58,19 @@
 html{height:100%;scroll-padding-top:env(safe-area-inset-top,0px)}
 body{margin:0;min-height:100%;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;transition:background .25s,color .25s}
 button,input{font-family:inherit}
+@media (max-width: 959px) {
+  input, textarea, select {
+    font-size: 16px !important;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
 .page{position:relative;width:100%;min-height:100vh;min-height:100dvh;display:grid;grid-template-columns:minmax(0,1fr);overflow:hidden}
 .left{position:relative;z-index:2;display:flex;flex-direction:column;min-height:0;padding:20px clamp(20px,4vw,56px) 22px;width:100%;max-width:720px}
 .top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
@@ -165,5 +189,17 @@ h1 em{font-style:normal;color:var(--gold)}
 }
 
 html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+
+/* Shell modes */
+[data-shell="mobile"] {
+  width: 100%;
+}
+[data-shell="mobile"] main {
+  width: 100%;
+  max-width: 100%;
+}
+[data-shell="mobile"] aside {
+  display: none !important;
+}
 
 

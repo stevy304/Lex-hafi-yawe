@@ -2,7 +2,10 @@
 import express from "express";
 import { createServer as createViteServer } from "vite";
 import path2 from "path";
+import fs2 from "node:fs";
+import crypto2 from "node:crypto";
 import { fileURLToPath } from "url";
+import multer from "multer";
 
 // server/db.ts
 import fs from "node:fs";
@@ -407,7 +410,9 @@ function generateInitialData() {
     notifications: [],
     reports: [],
     verificationApplications: [],
-    auditLogs: []
+    auditLogs: [],
+    stories: [],
+    mediaAssets: []
   };
 }
 var Database = class {
@@ -497,6 +502,11 @@ var Database = class {
     this.data.auditLogs = (this.data.auditLogs || []).filter(
       (a) => this.data.users.some((u) => u.id === a.adminId) && !a.id.startsWith("audit_")
     );
+    const now = Date.now();
+    this.data.stories = (this.data.stories || []).filter(
+      (s) => !demoUserIds.has(s.authorId) && new Date(s.expiresAt).getTime() > now
+    );
+    this.data.mediaAssets = (this.data.mediaAssets || []).filter((m) => !demoUserIds.has(m.ownerId));
     this.data.laws = JSON.parse(JSON.stringify(OFFICIAL_LAWS));
     this.data.legalAidProviders = JSON.parse(JSON.stringify(OFFICIAL_LEGAL_AID_PROVIDERS));
     if (!this.data.communities || this.data.communities.length === 0) {
@@ -661,6 +671,35 @@ var Database = class {
   getUserById(id) {
     return this.data.users.find((u) => u.id === id) || null;
   }
+  upsertUser(user) {
+    const existing = this.data.users.find((u) => u.id === user.id);
+    if (existing) {
+      Object.assign(existing, user);
+      this.persist();
+      return existing;
+    }
+    const newUser = {
+      id: user.id,
+      name: user.name || "User",
+      username: user.username || `user_${Date.now()}`,
+      role: user.role || "citizen",
+      isVerified: Boolean(user.isVerified),
+      verificationType: user.verificationType,
+      professionalTitle: user.professionalTitle,
+      email: user.email || `${user.id}@lex.rw`,
+      phone: user.phone || "+250788000000",
+      bio: user.bio || "",
+      location: user.location || "Kigali, Rwanda",
+      languages: user.languages || ["Kinyarwanda", "English"],
+      joinedDate: user.joinedDate || (/* @__PURE__ */ new Date()).toISOString(),
+      followersCount: user.followersCount || 0,
+      followingCount: user.followingCount || 0,
+      postsCount: user.postsCount || 0
+    };
+    this.data.users.push(newUser);
+    this.persist();
+    return newUser;
+  }
   updateUserProfile(userId, updates) {
     const index = this.data.users.findIndex((u) => u.id === userId);
     if (index === -1) return null;
@@ -720,10 +759,101 @@ var Database = class {
         (p) => p.content.toLowerCase().includes(q) || p.legalTopic && p.legalTopic.toLowerCase().includes(q) || p.tags.some((t) => t.toLowerCase().includes(q))
       );
     }
-    return list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    return list.map((p) => ({
+      ...p,
+      quotedPost: p.quotedPostId ? this.getPostById(p.quotedPostId) || void 0 : void 0,
+      previewReplies: this.getReplies(p.id).slice(-2)
+    }));
+  }
+  getPostsPaginated(filters) {
+    let list = [...this.data.posts];
+    if (filters?.communityId) {
+      list = list.filter((p) => p.communityId === filters.communityId);
+    }
+    if (filters?.authorId) {
+      list = list.filter((p) => p.authorId === filters.authorId);
+    }
+    if (filters?.topic && filters.topic !== "all") {
+      list = list.filter((p) => p.legalTopic === filters.topic);
+    }
+    if (filters?.tag) {
+      list = list.filter((p) => p.tags.includes(filters.tag));
+    }
+    if (filters?.query) {
+      const q = filters.query.toLowerCase();
+      list = list.filter(
+        (p) => p.content.toLowerCase().includes(q) || p.legalTopic && p.legalTopic.toLowerCase().includes(q) || p.tags.some((t) => t.toLowerCase().includes(q))
+      );
+    }
+    if (filters?.tab === "following" && filters.currentUserId) {
+      const user = this.getUserById(filters.currentUserId);
+      const followingIds = user?.followingIds || [];
+      list = list.filter((p) => followingIds.includes(p.authorId) || p.authorId === filters.currentUserId);
+    } else if (filters?.tab === "advocates" || filters?.tab === "professionals") {
+      list = list.filter((p) => {
+        const author = this.getUserById(p.authorId);
+        return author?.role === "advocate" || author?.verificationType === "bar_member" || author?.isVerified;
+      });
+    } else if (filters?.tab === "official") {
+      list = list.filter((p) => {
+        const author = this.getUserById(p.authorId);
+        return p.isOfficialAnnouncement || author?.role === "institution" || author?.verificationType === "official_institution";
+      });
+    } else if (filters?.tab === "communities") {
+      list = list.filter((p) => Boolean(p.communityId));
+    }
+    list.sort((a, b) => {
+      const diff = new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      if (diff !== 0) return diff;
+      return b.id.localeCompare(a.id);
+    });
+    const totalCount = list.length;
+    const limit = filters?.limit ? Math.min(Math.max(filters.limit, 1), 50) : 15;
+    let startIndex = 0;
+    if (filters?.cursor) {
+      try {
+        const decoded = Buffer.from(filters.cursor, "base64").toString("utf-8");
+        const [cursorDate, cursorId] = decoded.split("|");
+        const foundIndex = list.findIndex((p) => {
+          if (p.createdAt === cursorDate && p.id === cursorId) return true;
+          return p.createdAt < cursorDate;
+        });
+        if (foundIndex !== -1) {
+          startIndex = list[foundIndex].id === cursorId ? foundIndex + 1 : foundIndex;
+        }
+      } catch {
+        startIndex = 0;
+      }
+    }
+    const pageItems = list.slice(startIndex, startIndex + limit);
+    const enriched = pageItems.map((p) => ({
+      ...p,
+      quotedPost: p.quotedPostId ? this.getPostById(p.quotedPostId) || void 0 : void 0,
+      previewReplies: this.getReplies(p.id).slice(-2)
+    }));
+    const nextItem = list[startIndex + limit];
+    let nextCursor = null;
+    let hasMore = false;
+    if (nextItem) {
+      hasMore = true;
+      nextCursor = Buffer.from(`${nextItem.createdAt}|${nextItem.id}`).toString("base64");
+    }
+    return {
+      posts: enriched,
+      nextCursor,
+      hasMore,
+      totalCount
+    };
   }
   getPostById(id) {
-    return this.data.posts.find((p) => p.id === id) || null;
+    const post = this.data.posts.find((p) => p.id === id);
+    if (!post) return null;
+    return {
+      ...post,
+      quotedPost: post.quotedPostId ? this.data.posts.find((p) => p.id === post.quotedPostId) || void 0 : void 0,
+      previewReplies: this.getReplies(post.id).slice(-2)
+    };
   }
   createPost(postData) {
     const author = this.getUserById(postData.authorId);
@@ -741,6 +871,10 @@ var Database = class {
       tags: postData.tags?.length ? postData.tags : ["LegalDiscussion", "RwandaLaw"],
       audience: postData.audience || "public",
       attachments: postData.attachments?.length ? postData.attachments : void 0,
+      citations: postData.citations,
+      documents: postData.documents,
+      media: postData.media,
+      lang: postData.lang || "en",
       likesCount: 0,
       repliesCount: 0,
       repostsCount: 0,
@@ -1306,6 +1440,76 @@ var Database = class {
       totalCommunities: this.data.communities.length
     };
   }
+  // --- Stories & Legal Bulletins ---
+  getStories(currentUserId) {
+    const now = Date.now();
+    this.data.stories = (this.data.stories || []).filter((s) => new Date(s.expiresAt).getTime() > now);
+    return [...this.data.stories].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }
+  createStory(authorId, data) {
+    const user = this.getUserById(authorId);
+    if (!user) throw new Error("User not found");
+    let resolvedType = "community_story";
+    if (user.role === "institution" || user.role === "admin" || user.verificationType === "official_institution") {
+      resolvedType = "official_bulletin";
+    } else if (user.role === "advocate" || user.verificationType === "bar_member") {
+      resolvedType = "advocate_story";
+    }
+    const newStory = {
+      id: `story_${Date.now()}_${crypto.randomBytes(3).toString("hex")}`,
+      authorId,
+      mediaType: data.mediaType,
+      mediaUrl: data.mediaUrl,
+      previewUrl: data.previewUrl,
+      caption: data.caption,
+      createdAt: (/* @__PURE__ */ new Date()).toISOString(),
+      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1e3).toISOString(),
+      duration: Math.min(data.duration || (data.mediaType === "video" ? 15 : 6), 15),
+      viewsCount: 0,
+      viewedBy: [],
+      storyType: resolvedType,
+      isOfficialGazetteAlert: !!data.isOfficialGazetteAlert
+    };
+    if (!this.data.stories) this.data.stories = [];
+    this.data.stories.unshift(newStory);
+    this.persist();
+    return newStory;
+  }
+  recordStoryView(storyId, viewerId) {
+    if (!this.data.stories) return { viewsCount: 0 };
+    const story = this.data.stories.find((s) => s.id === storyId);
+    if (!story) return { viewsCount: 0 };
+    if (!story.viewedBy.includes(viewerId)) {
+      story.viewedBy.push(viewerId);
+      story.viewsCount = story.viewedBy.length;
+      this.persist();
+    }
+    return { viewsCount: story.viewsCount };
+  }
+  deleteStory(storyId, userId) {
+    if (!this.data.stories) return false;
+    const storyIndex = this.data.stories.findIndex((s) => s.id === storyId);
+    if (storyIndex === -1) return false;
+    const story = this.data.stories[storyIndex];
+    const user = this.getUserById(userId);
+    if (story.authorId !== userId && user?.role !== "admin") {
+      throw new Error("Permission denied to delete this story");
+    }
+    this.data.stories.splice(storyIndex, 1);
+    this.persist();
+    return true;
+  }
+  // --- Media Assets ---
+  saveMediaAsset(asset) {
+    if (!this.data.mediaAssets) this.data.mediaAssets = [];
+    this.data.mediaAssets.push(asset);
+    this.persist();
+    return asset;
+  }
+  getMediaAsset(id) {
+    if (!this.data.mediaAssets) return null;
+    return this.data.mediaAssets.find((m) => m.id === id) || null;
+  }
   // --- Reset/Seed ---
   resetToInitial() {
     this.data = generateInitialData();
@@ -1359,6 +1563,216 @@ async function startServer() {
   app.use(express.urlencoded({ extended: true, limit: "10mb" }));
   app.use(authMiddleware);
   const api = express.Router();
+  const sseClients = /* @__PURE__ */ new Map();
+  function broadcastFeedEvent(event, payload) {
+    const message = `event: ${event}
+data: ${JSON.stringify({ event, data: payload, timestamp: (/* @__PURE__ */ new Date()).toISOString() })}
+
+`;
+    for (const [id, client] of sseClients.entries()) {
+      try {
+        client.res.write(message);
+      } catch {
+        sseClients.delete(id);
+      }
+    }
+  }
+  api.get("/feed/stream", (req, res) => {
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache, no-transform");
+    res.setHeader("Connection", "keep-alive");
+    res.setHeader("X-Accel-Buffering", "no");
+    res.flushHeaders?.();
+    const clientId = `client_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+    const client = { id: clientId, userId: req.user?.id, res };
+    sseClients.set(clientId, client);
+    res.write(`event: connected
+data: ${JSON.stringify({ clientId, timestamp: (/* @__PURE__ */ new Date()).toISOString() })}
+
+`);
+    const heartbeat = setInterval(() => {
+      try {
+        res.write(": ping\n\n");
+      } catch {
+        clearInterval(heartbeat);
+        sseClients.delete(clientId);
+      }
+    }, 25e3);
+    req.on("close", () => {
+      clearInterval(heartbeat);
+      sseClients.delete(clientId);
+    });
+  });
+  const UPLOADS_DIR = path2.resolve(process.cwd(), "data", "uploads");
+  if (!fs2.existsSync(UPLOADS_DIR)) {
+    fs2.mkdirSync(UPLOADS_DIR, { recursive: true });
+  }
+  const storage = multer.diskStorage({
+    destination: (_req, _file, cb) => {
+      cb(null, UPLOADS_DIR);
+    },
+    filename: (_req, file, cb) => {
+      const ext = path2.extname(file.originalname).toLowerCase();
+      const safeName = `${Date.now()}_${crypto2.randomBytes(6).toString("hex")}${ext}`;
+      cb(null, safeName);
+    }
+  });
+  const upload = multer({
+    storage,
+    limits: {
+      fileSize: 50 * 1024 * 1024
+      // 50MB maximum video limit
+    },
+    fileFilter: (_req, file, cb) => {
+      const allowedMimes = [
+        "image/jpeg",
+        "image/png",
+        "image/webp",
+        "image/gif",
+        "video/mp4",
+        "video/webm",
+        "video/quicktime",
+        "application/pdf",
+        "application/msword",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "text/plain"
+      ];
+      if (allowedMimes.includes(file.mimetype)) {
+        cb(null, true);
+      } else {
+        cb(new Error(`Unsupported file type: ${file.mimetype}`));
+      }
+    }
+  });
+  function serveMediaWithRanges(req, res) {
+    const filename = path2.basename(req.params.filename);
+    const filePath = path2.join(UPLOADS_DIR, filename);
+    if (!fs2.existsSync(filePath)) {
+      return res.status(404).json({ error: "Media asset not found" });
+    }
+    const stat = fs2.statSync(filePath);
+    const fileSize = stat.size;
+    const ext = path2.extname(filename).toLowerCase();
+    const mimeMap = {
+      ".mp4": "video/mp4",
+      ".webm": "video/webm",
+      ".mov": "video/quicktime",
+      ".jpg": "image/jpeg",
+      ".jpeg": "image/jpeg",
+      ".png": "image/png",
+      ".webp": "image/webp",
+      ".gif": "image/gif",
+      ".pdf": "application/pdf",
+      ".doc": "application/msword",
+      ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    };
+    const contentType = mimeMap[ext] || "application/octet-stream";
+    const range = req.headers.range;
+    if (range) {
+      const parts = range.replace(/bytes=/, "").split("-");
+      const start = parseInt(parts[0], 10);
+      const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
+      if (start >= fileSize || end >= fileSize) {
+        res.setHeader("Content-Range", `bytes */${fileSize}`);
+        return res.status(416).send("Requested range not satisfiable");
+      }
+      const chunksize = end - start + 1;
+      const fileStream = fs2.createReadStream(filePath, { start, end });
+      res.writeHead(206, {
+        "Content-Range": `bytes ${start}-${end}/${fileSize}`,
+        "Accept-Ranges": "bytes",
+        "Content-Length": chunksize,
+        "Content-Type": contentType,
+        "Cache-Control": "public, max-age=86400, immutable"
+      });
+      fileStream.pipe(res);
+    } else {
+      res.writeHead(200, {
+        "Content-Length": fileSize,
+        "Content-Type": contentType,
+        "Accept-Ranges": "bytes",
+        "Cache-Control": "public, max-age=86400, immutable"
+      });
+      fs2.createReadStream(filePath).pipe(res);
+    }
+  }
+  app.get("/uploads/:filename", serveMediaWithRanges);
+  api.get("/media/:filename", serveMediaWithRanges);
+  api.post("/media/upload", requireAuth, upload.single("file"), (req, res) => {
+    if (!req.file) {
+      return res.status(400).json({ error: "No media file provided" });
+    }
+    const file = req.file;
+    const isVideo = file.mimetype.startsWith("video/");
+    const isImage = file.mimetype.startsWith("image/");
+    const mediaType = isVideo ? "video" : isImage ? "image" : "document";
+    const duration = req.body.duration ? parseFloat(req.body.duration) : void 0;
+    const width = req.body.width ? parseInt(req.body.width, 10) : void 0;
+    const height = req.body.height ? parseInt(req.body.height, 10) : void 0;
+    const aspectRatio = req.body.aspectRatio || (width && height ? height > width ? "4:5" : width === height ? "1:1" : "16:9" : void 0);
+    const posterUrl = req.body.posterUrl || void 0;
+    const mediaAsset = {
+      id: `media_${Date.now()}_${crypto2.randomBytes(4).toString("hex")}`,
+      ownerId: req.user.id,
+      mediaType,
+      mimeType: file.mimetype,
+      fileSize: file.size,
+      duration,
+      width,
+      height,
+      aspectRatio,
+      storagePath: file.filename,
+      publicUrl: `/uploads/${file.filename}`,
+      posterUrl,
+      uploadStatus: "ready",
+      createdAt: (/* @__PURE__ */ new Date()).toISOString()
+    };
+    db.saveMediaAsset(mediaAsset);
+    res.status(201).json({
+      mediaAsset,
+      url: `/uploads/${file.filename}`,
+      name: file.originalname,
+      size: file.size,
+      mimeType: file.mimetype
+    });
+  });
+  api.get("/stories", (req, res) => {
+    const stories = db.getStories(req.user?.id);
+    res.json(stories);
+  });
+  api.post("/stories", requireAuth, (req, res) => {
+    const { mediaType, mediaUrl, previewUrl, caption, duration, storyType, isOfficialGazetteAlert } = req.body;
+    if (!mediaType || !mediaUrl) {
+      return res.status(400).json({ error: "mediaType and mediaUrl are required" });
+    }
+    try {
+      const story = db.createStory(req.user.id, {
+        mediaType,
+        mediaUrl,
+        previewUrl,
+        caption,
+        duration: duration ? Math.min(Number(duration), 15) : void 0,
+        storyType,
+        isOfficialGazetteAlert: !!isOfficialGazetteAlert
+      });
+      broadcastFeedEvent("story:created", story);
+      res.status(201).json(story);
+    } catch (err) {
+      res.status(400).json({ error: err.message });
+    }
+  });
+  api.post("/stories/:id/view", requireAuth, (req, res) => {
+    const result = db.recordStoryView(req.params.id, req.user.id);
+    res.json(result);
+  });
+  api.delete("/stories/:id", requireAuth, (req, res) => {
+    try {
+      const success = db.deleteStory(req.params.id, req.user.id);
+      res.json({ success });
+    } catch (err) {
+      res.status(403).json({ error: err.message });
+    }
+  });
   api.post("/auth/login", (req, res) => {
     const { identifier, password } = req.body;
     if (!identifier || !password) {
@@ -1382,6 +1796,35 @@ async function startServer() {
     }
     const token = db.createSession(user.id);
     res.json({ user, token });
+  });
+  api.post("/auth/session", (req, res) => {
+    const { user } = req.body;
+    if (!user || !user.id) {
+      return res.status(400).json({ error: "User with id is required" });
+    }
+    let existing = db.getUserById(user.id);
+    if (!existing) {
+      existing = db.upsertUser({
+        id: user.id,
+        name: user.name || "Citizen User",
+        username: user.handle || user.username || `user_${Date.now()}`,
+        role: user.role || "citizen",
+        isVerified: user.verifiedAdvocate || user.isVerified || false,
+        verificationType: user.verificationType,
+        professionalTitle: user.professionalTitle,
+        email: user.email || `${user.handle || "user"}@lex.rw`,
+        phone: user.phone || "+250788000000",
+        bio: user.bio || "",
+        location: user.district ? `${user.district}, Rwanda` : "Kigali, Rwanda",
+        languages: user.languages || ["Kinyarwanda", "English"],
+        joinedDate: (/* @__PURE__ */ new Date()).toISOString(),
+        followersCount: user.followersCount || 0,
+        followingCount: user.followingCount || 0,
+        postsCount: user.postsCount || 0
+      });
+    }
+    const token = db.createSession(existing.id);
+    res.json({ user: existing, token });
   });
   api.post("/auth/register", (req, res) => {
     const { name, username, email, password, role, practiceAreas, barRollNumber, firmName, location } = req.body;
@@ -1485,7 +1928,21 @@ async function startServer() {
     }
   });
   api.get("/posts", (req, res) => {
-    const { topic, tag, authorId, communityId, q } = req.query;
+    const { topic, tag, authorId, communityId, q, tab, cursor, limit, format } = req.query;
+    if (cursor !== void 0 || limit !== void 0 || tab !== void 0 || format === "paginated") {
+      const result = db.getPostsPaginated({
+        topic,
+        tag,
+        authorId,
+        communityId,
+        query: q,
+        tab,
+        currentUserId: req.user?.id,
+        cursor,
+        limit: limit ? parseInt(limit, 10) : 15
+      });
+      return res.json(result);
+    }
     const posts = db.getPosts({
       topic,
       tag,
@@ -1501,7 +1958,7 @@ async function startServer() {
     res.json(post);
   });
   api.post("/posts", requireAuth, (req, res) => {
-    const { content, legalTopic, tags, attachments, audience, communityId, quotedPostId } = req.body;
+    const { content, legalTopic, tags, attachments, audience, communityId, quotedPostId, citations, documents, media, lang } = req.body;
     if (!content || !content.trim()) {
       return res.status(400).json({ error: "Post content cannot be empty" });
     }
@@ -1514,12 +1971,45 @@ async function startServer() {
         attachments,
         audience,
         communityId,
-        quotedPostId
+        quotedPostId,
+        citations,
+        documents,
+        media,
+        lang
       });
+      broadcastFeedEvent("post:created", post);
       res.status(201).json(post);
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
+  });
+  api.post("/posts/:id/not-interested", (req, res) => {
+    res.json({ success: true, postId: req.params.id });
+  });
+  api.post("/translate", (req, res) => {
+    const { postId, target } = req.body;
+    const post = db.getPostById(postId);
+    if (!post) return res.status(404).json({ error: "Post not found" });
+    let text = post.content;
+    if (target === "rw") {
+      text = `[Ubusobanuro]: ${post.content}`;
+    } else if (target === "fr") {
+      text = `[Traduction]: ${post.content}`;
+    } else {
+      text = `[Translation]: ${post.content}`;
+    }
+    res.json({ text, sourceLang: post.lang || "en" });
+  });
+  api.get("/search/suggest", (req, res) => {
+    const q = (req.query.q || "").toLowerCase().trim();
+    const type = req.query.type;
+    if (type === "laws") {
+      const laws = db.getLaws().filter(
+        (l) => l.title.toLowerCase().includes(q) || l.lawNumber.toLowerCase().includes(q) || l.category.toLowerCase().includes(q) || l.officialGazetteNumber.toLowerCase().includes(q)
+      ).slice(0, 8);
+      return res.json({ laws });
+    }
+    res.json({ suggestions: [] });
   });
   api.patch("/posts/:id", requireAuth, (req, res) => {
     const { content } = req.body;
@@ -1529,6 +2019,7 @@ async function startServer() {
     try {
       const updated = db.updatePost(req.params.id, req.user.id, content.trim());
       if (!updated) return res.status(404).json({ error: "Post not found" });
+      broadcastFeedEvent("post:updated", updated);
       res.json(updated);
     } catch (err) {
       res.status(403).json({ error: err.message });
@@ -1538,6 +2029,7 @@ async function startServer() {
     try {
       const success = db.deletePost(req.params.id, req.user.id);
       if (!success) return res.status(404).json({ error: "Post not found" });
+      broadcastFeedEvent("post:deleted", { postId: req.params.id });
       res.json({ success: true });
     } catch (err) {
       res.status(403).json({ error: err.message });
@@ -1546,6 +2038,7 @@ async function startServer() {
   api.post("/posts/:id/like", requireAuth, (req, res) => {
     try {
       const result = db.toggleLike(req.params.id, req.user.id);
+      broadcastFeedEvent("post:liked", result);
       res.json(result);
     } catch (err) {
       res.status(400).json({ error: err.message });
@@ -1554,6 +2047,7 @@ async function startServer() {
   api.post("/posts/:id/repost", requireAuth, (req, res) => {
     try {
       const result = db.toggleRepost(req.params.id, req.user.id);
+      broadcastFeedEvent("post:reposted", result);
       res.json(result);
     } catch (err) {
       res.status(400).json({ error: err.message });
@@ -1578,6 +2072,7 @@ async function startServer() {
     }
     try {
       const reply = db.createReply(req.params.id, req.user.id, content.trim(), parentReplyId);
+      broadcastFeedEvent("post:reply", { postId: req.params.id, reply });
       res.status(201).json(reply);
     } catch (err) {
       res.status(400).json({ error: err.message });

@@ -331,6 +331,38 @@ async function startServer() {
     res.json({ user, token });
   });
 
+  api.post('/auth/session', (req, res) => {
+    const { user } = req.body;
+    if (!user || !user.id) {
+      return res.status(400).json({ error: 'User with id is required' });
+    }
+
+    let existing = db.getUserById(user.id);
+    if (!existing) {
+      existing = db.upsertUser({
+        id: user.id,
+        name: user.name || 'Citizen User',
+        username: user.handle || user.username || `user_${Date.now()}`,
+        role: user.role || 'citizen',
+        isVerified: user.verifiedAdvocate || user.isVerified || false,
+        verificationType: user.verificationType,
+        professionalTitle: user.professionalTitle,
+        email: user.email || `${user.handle || 'user'}@lex.rw`,
+        phone: user.phone || '+250788000000',
+        bio: user.bio || '',
+        location: user.district ? `${user.district}, Rwanda` : 'Kigali, Rwanda',
+        languages: user.languages || ['Kinyarwanda', 'English'],
+        joinedDate: new Date().toISOString(),
+        followersCount: user.followersCount || 0,
+        followingCount: user.followingCount || 0,
+        postsCount: user.postsCount || 0,
+      });
+    }
+
+    const token = db.createSession(existing.id);
+    res.json({ user: existing, token });
+  });
+
   api.post('/auth/register', (req, res) => {
     const { name, username, email, password, role, practiceAreas, barRollNumber, firmName, location } = req.body;
     if (!name || !username || !email || !password || !role) {

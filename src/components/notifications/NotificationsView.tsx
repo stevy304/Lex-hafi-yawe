@@ -9,10 +9,11 @@ import {
   CheckCheck,
   UserPlus,
   Trash2,
-  LogIn
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { UserAvatar } from '../common/UserAvatar';
+import { PageHeader } from '../common/PageHeader';
+import { EmptyState } from '../common/EmptyState';
 
 export const NotificationsView: React.FC = () => {
   const {
@@ -25,183 +26,185 @@ export const NotificationsView: React.FC = () => {
     setSelectedPostForThread,
     posts,
     setActiveView,
-    openLoginModal
+    openLoginModal,
   } = useApp();
 
   const [filter, setFilter] = useState<'all' | 'appointments' | 'official'>('all');
 
   if (!currentUser) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center p-8 text-center">
-        <div>
-          <div className="w-12 h-12 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center mx-auto mb-3">
-            <Bell className="w-6 h-6" />
-          </div>
-          <h2 className="text-base font-bold text-slate-900 mb-1">
-            Notifications Center
-          </h2>
-          <p className="text-xs text-slate-500 max-w-sm mb-4">
-            Sign in to track real-time engagement, consultation confirmations, and official ministerial circulars.
-          </p>
-          <button
-            onClick={openLoginModal}
-            className="px-5 py-2.5 bg-blue-700 text-white font-bold text-xs rounded-xl hover:bg-blue-800 transition flex items-center gap-2 mx-auto cursor-pointer"
-          >
-            <LogIn className="w-4 h-4" />
-            <span>Sign In to View Notifications</span>
-          </button>
-        </div>
+      <div className="relative flex-1 min-w-0 max-w-[680px] w-full border-x border-[var(--border)] bg-[var(--bg)] h-screen overflow-y-auto no-scrollbar outline-none select-text flex items-center justify-center">
+        <EmptyState
+          icon={<Bell className="w-6 h-6 text-[var(--accent)]" />}
+          title="Notifications center"
+          description="Sign in to track real-time engagement, consultation confirmations, and official ministerial circulars."
+          action={{
+            label: 'Sign in to view notifications',
+            onClick: openLoginModal,
+          }}
+        />
       </div>
     );
   }
 
-  const myNotifications = notifications.filter(n => n.recipientId === currentUser.id);
+  const myNotifications = notifications.filter((n) => n.recipientId === currentUser.id);
 
-  const filtered = myNotifications.filter(n => {
+  const filtered = myNotifications.filter((n) => {
     if (filter === 'appointments') return n.type === 'appointment';
     if (filter === 'official') return n.type === 'official_update';
     return true;
   });
 
-  const handleNotificationClick = (notif: typeof notifications[0]) => {
-    markNotificationAsRead(notif.id);
+  const unreadCount = myNotifications.filter((n) => !n.isRead).length;
 
-    if (notif.type === 'appointment') {
-      setActiveView('appointments');
-    } else if (notif.referenceId) {
-      const targetPost = posts.find(p => p.id === notif.referenceId);
-      if (targetPost) {
-        setSelectedPostForThread(targetPost);
-      }
+  const getNotificationIcon = (type: string) => {
+    switch (type) {
+      case 'like':
+        return <Heart className="w-4 h-4 text-[var(--like)]" />;
+      case 'reply':
+        return <MessageCircle className="w-4 h-4 text-[var(--accent)]" />;
+      case 'repost':
+        return <Repeat2 className="w-4 h-4 text-[var(--ok-text)]" />;
+      case 'follow':
+        return <UserPlus className="w-4 h-4 text-[var(--accent)]" />;
+      case 'appointment':
+        return <Calendar className="w-4 h-4 text-[var(--accent)]" />;
+      case 'official_update':
+        return <Award className="w-4 h-4 text-[var(--gold)]" />;
+      default:
+        return <Bell className="w-4 h-4 text-[var(--accent)]" />;
     }
   };
 
-  const getNotifIcon = (type: string) => {
-    switch (type) {
-      case 'like':
-        return <Heart className="w-4 h-4 text-rose-500 fill-rose-500" />;
-      case 'reply':
-        return <MessageCircle className="w-4 h-4 text-blue-600" />;
-      case 'repost':
-        return <Repeat2 className="w-4 h-4 text-emerald-600" />;
-      case 'appointment':
-        return <Calendar className="w-4 h-4 text-blue-700" />;
-      case 'official_update':
-        return <Award className="w-4 h-4 text-amber-600" />;
-      default:
-        return <Bell className="w-4 h-4 text-slate-500" />;
+  const handleNotificationClick = (notif: (typeof notifications)[0]) => {
+    markNotificationAsRead(notif.id);
+
+    if (notif.referenceId) {
+      const post = posts.find((p) => p.id === notif.referenceId);
+      if (post) {
+        setSelectedPostForThread(post);
+        setActiveView('feed');
+      }
+    } else if (notif.type === 'appointment') {
+      setActiveView('appointments');
     }
   };
 
   return (
-    <div className="min-h-screen bg-slate-50/50">
-      {/* Header */}
-      <div className="bg-white border-b border-slate-200 px-4 sm:px-6 py-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Bell className="w-5 h-5 text-blue-700" />
-            <h1 className="text-lg font-black text-slate-900">
-              Notifications Center
-            </h1>
-          </div>
-
+    <div className="relative flex-1 min-w-0 max-w-[680px] w-full border-x border-[var(--border)] bg-[var(--bg)] h-screen overflow-y-auto no-scrollbar outline-none select-text">
+      <PageHeader
+        title="Notifications"
+        actions={
+          unreadCount > 0 ? (
+            <button
+              type="button"
+              onClick={markAllNotificationsAsRead}
+              className="text-[12px] font-medium text-[var(--accent)] hover:underline flex items-center gap-1 cursor-pointer"
+            >
+              <CheckCheck className="w-3.5 h-3.5" />
+              <span>Mark all read</span>
+            </button>
+          ) : undefined
+        }
+      >
+        <div className="flex gap-1.5 overflow-x-auto no-scrollbar pt-1 text-[13px] font-medium">
           <button
-            onClick={markAllNotificationsAsRead}
-            className="text-xs font-bold text-blue-700 hover:text-blue-900 flex items-center gap-1 cursor-pointer"
-          >
-            <CheckCheck className="w-4 h-4" />
-            <span>Mark all read</span>
-          </button>
-        </div>
-
-        {/* Filter Tabs */}
-        <div className="flex gap-2 mt-3">
-          <button
+            type="button"
             onClick={() => setFilter('all')}
-            className={`px-3 py-1 rounded-lg text-xs font-semibold transition ${
+            className={`px-3 py-1 rounded-full transition-colors whitespace-nowrap cursor-pointer ${
               filter === 'all'
-                ? 'bg-blue-700 text-white'
-                : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                ? 'bg-[var(--accent)] text-white'
+                : 'bg-[var(--surface)] text-[var(--muted)] hover:text-[var(--text)] border border-[var(--border)]'
             }`}
           >
-            All
+            All ({myNotifications.length})
           </button>
           <button
+            type="button"
             onClick={() => setFilter('appointments')}
-            className={`px-3 py-1 rounded-lg text-xs font-semibold transition ${
+            className={`px-3 py-1 rounded-full transition-colors whitespace-nowrap cursor-pointer ${
               filter === 'appointments'
-                ? 'bg-blue-700 text-white'
-                : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                ? 'bg-[var(--accent)] text-white'
+                : 'bg-[var(--surface)] text-[var(--muted)] hover:text-[var(--text)] border border-[var(--border)]'
             }`}
           >
-            Appointments
+            Consultations
           </button>
           <button
+            type="button"
             onClick={() => setFilter('official')}
-            className={`px-3 py-1 rounded-lg text-xs font-semibold transition ${
+            className={`px-3 py-1 rounded-full transition-colors whitespace-nowrap cursor-pointer ${
               filter === 'official'
-                ? 'bg-blue-700 text-white'
-                : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                ? 'bg-[var(--accent)] text-white'
+                : 'bg-[var(--surface)] text-[var(--muted)] hover:text-[var(--text)] border border-[var(--border)]'
             }`}
           >
-            Official Gazettes & Updates
+            Official alerts
           </button>
         </div>
-      </div>
+      </PageHeader>
 
-      {/* Notifications List */}
-      <div className="divide-y divide-slate-100 bg-white">
+      <div className="divide-y divide-[var(--border)]">
         {filtered.length === 0 ? (
-          <div className="p-12 text-center text-xs text-slate-500">
-            No notifications in this category.
-          </div>
+          <EmptyState
+            icon={<Bell className="w-6 h-6 text-[var(--muted)]" />}
+            title="No notifications yet"
+            description="When people interact with your legal analysis or schedule consultations, you'll see them here."
+          />
         ) : (
-          filtered.map(notif => {
-            const sender = users.find(u => u.id === notif.senderId);
+          filtered.map((notif) => {
+            const sender = users.find((u) => u.id === notif.senderId);
 
             return (
               <div
                 key={notif.id}
-                className={`p-4 flex items-start gap-3 transition hover:bg-slate-50 group ${
-                  !notif.isRead ? 'bg-blue-50/40 border-l-4 border-blue-600' : ''
+                onClick={() => handleNotificationClick(notif)}
+                className={`p-4 flex items-start gap-3 transition-colors cursor-pointer ${
+                  !notif.isRead
+                    ? 'bg-[var(--surface)] border-l-4 border-[var(--accent)]'
+                    : 'hover:bg-[var(--hover)]'
                 }`}
               >
-                <div className="mt-0.5 shrink-0" onClick={() => handleNotificationClick(notif)}>
-                  {getNotifIcon(notif.type)}
+                <div className="mt-1 shrink-0 p-1.5 rounded-full bg-[var(--surface)] border border-[var(--border)] flex items-center justify-center">
+                  {getNotificationIcon(notif.type)}
                 </div>
 
-                {sender && (
-                  <div onClick={() => handleNotificationClick(notif)} className="cursor-pointer">
-                    <UserAvatar user={sender} size="sm" />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    {sender && <UserAvatar user={sender} size="xs" />}
+                    <span className="text-[14px] font-medium text-[var(--text)] truncate">
+                      {sender ? sender.name : 'Lex Hafi Yawe'}
+                    </span>
+                    <span className="text-[11px] text-[var(--muted)] ml-auto shrink-0">
+                      {new Date(notif.createdAt).toLocaleDateString([], {
+                        month: 'short',
+                        day: 'numeric',
+                      })}
+                    </span>
                   </div>
-                )}
 
-                <div
-                  className="flex-1 min-w-0 cursor-pointer"
-                  onClick={() => handleNotificationClick(notif)}
-                >
-                  <p className="text-xs text-slate-800 leading-snug">
+                  <p className="text-[13px] text-[var(--text)] leading-snug">
                     {notif.message}
                   </p>
-                  <span className="text-[10px] text-slate-400 block mt-1">
-                    {new Date(notif.createdAt).toLocaleDateString()} • {new Date(notif.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                  </span>
-                </div>
 
-                <div className="flex items-center gap-1.5 shrink-0">
-                  {!notif.isRead && (
-                    <span className="w-2 h-2 rounded-full bg-blue-600 mr-1" />
-                  )}
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      deleteNotification(notif.id);
-                    }}
-                    title="Delete notification"
-                    className="p-1 text-slate-300 hover:text-red-600 rounded-md transition opacity-0 group-hover:opacity-100"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
+                  <div className="flex items-center justify-between mt-2 pt-1">
+                    <span className="text-[11px] text-[var(--muted)]">
+                      {notif.type === 'official_update'
+                        ? 'Official Gazette bulletin'
+                        : 'Tap to view'}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deleteNotification(notif.id);
+                      }}
+                      className="text-[var(--muted)] hover:text-[var(--danger)] p-1 rounded transition-colors cursor-pointer"
+                      title="Dismiss notification"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </div>
               </div>
             );

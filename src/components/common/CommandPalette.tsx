@@ -191,16 +191,16 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose 
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-start justify-center pt-12 sm:pt-20 px-3 sm:px-4 select-none"
+      className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-start justify-center pt-12 sm:pt-20 px-3 sm:px-4 select-none"
       onClick={onClose}
     >
       <div
-        className="w-full max-w-2xl bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[80vh] animate-in fade-in zoom-in-95 duration-150"
+        className="w-full max-w-2xl bg-[var(--surface)] rounded-[12px] shadow-2xl border border-[var(--border)] overflow-hidden flex flex-col max-h-[80vh]"
         onClick={e => e.stopPropagation()}
       >
         {/* Command Input Bar */}
-        <div className="p-3.5 sm:p-4 border-b border-slate-200 flex items-center gap-3 bg-slate-50/50">
-          <Search className="w-5 h-5 text-slate-400 shrink-0" />
+        <div className="p-3.5 sm:p-4 border-b border-[var(--border)] flex items-center gap-3 bg-[var(--bg)]">
+          <Search className="w-5 h-5 text-[var(--muted)] shrink-0" />
           <input
             ref={inputRef}
             type="text"
@@ -211,15 +211,15 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose 
             }}
             onKeyDown={handleKeyDown}
             placeholder="Search Rwandan laws, verified counsel, communities, or actions..."
-            className="flex-1 text-sm text-slate-900 placeholder:text-slate-400 bg-transparent focus:outline-none font-medium"
+            className="flex-1 text-[14px] text-[var(--text)] placeholder:text-[var(--muted)] bg-transparent focus:outline-none font-medium"
           />
-          <span className="text-2xs font-bold text-slate-400 bg-slate-200/80 px-2 py-0.5 rounded-md border border-slate-300">
+          <span className="text-[10px] font-bold text-[var(--muted)] bg-[var(--surface)] px-2 py-0.5 rounded border border-[var(--border)]">
             ESC
           </span>
           <button
             type="button"
             onClick={onClose}
-            className="p-1 text-slate-400 hover:text-slate-700 rounded-lg transition"
+            className="p-1 text-[var(--muted)] hover:text-[var(--text)] rounded-lg transition-colors cursor-pointer"
             aria-label="Close command palette"
           >
             <X className="w-5 h-5" />
@@ -227,12 +227,12 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose 
         </div>
 
         {/* Results List */}
-        <div className="overflow-y-auto flex-1 p-2 space-y-1">
+        <div className="overflow-y-auto no-scrollbar flex-1 p-2 space-y-1">
           {filteredItems.length === 0 ? (
-            <div className="py-12 text-center text-slate-500 text-xs">
-              <Scale className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-              <p className="font-bold text-slate-700">No matching legal records found</p>
-              <p className="text-2xs text-slate-400 mt-1">
+            <div className="py-12 text-center text-[var(--muted)] text-xs">
+              <Scale className="w-8 h-8 text-[var(--muted)] mx-auto mb-2 opacity-50" />
+              <p className="font-semibold text-[var(--text)]">No matching legal records found</p>
+              <p className="text-[12px] text-[var(--muted)] mt-1">
                 Try searching for "Labor Law", "Land", "Clarisse", or "Abunzi".
               </p>
             </div>
@@ -245,32 +245,32 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose 
                   key={item.id}
                   onClick={() => item.onSelect()}
                   onMouseEnter={() => setSelectedIndex(idx)}
-                  className={`p-3 rounded-xl transition flex items-center justify-between cursor-pointer ${
-                    isSelected ? 'bg-[#FAF0E8] text-[#1E293B]' : 'hover:bg-slate-50 text-slate-800'
+                  className={`p-3 rounded-[10px] transition-colors flex items-center justify-between cursor-pointer ${
+                    isSelected ? 'bg-[var(--hover)] text-[var(--text)]' : 'hover:bg-[var(--hover)] text-[var(--text)]'
                   }`}
                 >
                   <div className="flex items-center gap-3 min-w-0">
                     <div
                       className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
                         isSelected
-                          ? 'bg-[#D36B2E] text-white shadow-xs'
-                          : 'bg-[#F4EEE9] text-[#45525A]'
+                          ? 'bg-[var(--accent)] text-white shadow-xs'
+                          : 'bg-[var(--bg)] text-[var(--muted)] border border-[var(--border)]'
                       }`}
                     >
                       <Icon className="w-4 h-4" />
                     </div>
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className="text-xs font-bold truncate">
+                        <span className="text-[13px] font-medium truncate">
                           {item.title}
                         </span>
                         {item.badge && (
-                          <span className="text-[10px] font-semibold text-[#D36B2E] bg-[#FAF0E8] px-1.5 py-0.2 rounded border border-[#F3D7C4]">
+                          <span className="text-[10px] font-medium text-[var(--gold)] bg-[var(--surface)] px-1.5 py-0.2 rounded border border-[var(--border)]">
                             {item.badge}
                           </span>
                         )}
                       </div>
-                      <p className="text-[11px] text-slate-500 truncate leading-tight mt-0.5">
+                      <p className="text-[12px] text-[var(--muted)] truncate leading-tight mt-0.5 m-0">
                         {item.subtitle}
                       </p>
                     </div>
@@ -278,7 +278,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose 
 
                   <ArrowRight
                     className={`w-4 h-4 shrink-0 transition-transform ${
-                      isSelected ? 'text-[#D36B2E] translate-x-0.5' : 'text-slate-300'
+                      isSelected ? 'text-[var(--accent)] translate-x-0.5' : 'text-[var(--muted)]'
                     }`}
                   />
                 </div>
@@ -288,13 +288,13 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose 
         </div>
 
         {/* Footer shortcuts hint */}
-        <div className="px-4 py-2.5 bg-slate-50 border-t border-slate-200 text-2xs text-slate-500 flex items-center justify-between">
+        <div className="px-4 py-2.5 bg-[var(--bg)] border-t border-[var(--border)] text-[11px] text-[var(--muted)] flex items-center justify-between">
           <div className="flex items-center gap-3">
             <span>↑↓ Navigate</span>
             <span>↵ Select</span>
             <span>ESC Close</span>
           </div>
-          <span className="font-semibold text-slate-600">Lex Hafi Yawe Quick Navigation</span>
+          <span className="font-medium text-[var(--text)]">Lex Hafi Yawe Quick Navigation</span>
         </div>
       </div>
     </div>

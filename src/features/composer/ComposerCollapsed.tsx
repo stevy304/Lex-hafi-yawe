@@ -34,12 +34,24 @@ export const ComposerCollapsed: React.FC<ComposerCollapsedProps> = ({
         </div>
 
         {/* Pill input */}
-        <div className="flex-1 h-[40px] px-4 rounded-full bg-[var(--surface)] border border-[var(--border)] flex items-center text-[14px] text-[var(--muted)]">
-          {placeholder}
+        <div
+          data-composer-input="true"
+          tabIndex={0}
+          role="button"
+          aria-label={placeholder}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              onExpand();
+            }
+          }}
+          className="flex-1 min-w-0 h-[40px] px-3.5 sm:px-4 rounded-full bg-[var(--surface)] border border-[var(--border)] flex items-center text-[14px] text-[var(--muted)] cursor-text overflow-hidden"
+        >
+          <span className="truncate">{placeholder}</span>
         </div>
 
-        {/* Quick action buttons (Photo, Document, Cite law) */}
-        <div className="flex items-center gap-1 shrink-0">
+        {/* Quick action buttons (Photo, Document, Cite law) - hidden on narrow phone to give input breathing room */}
+        <div className="hidden sm:flex items-center gap-1 shrink-0">
           <button
             type="button"
             title="Add photo"
@@ -82,7 +94,7 @@ export const ComposerCollapsed: React.FC<ComposerCollapsedProps> = ({
         <button
           type="button"
           disabled
-          className="h-[36px] px-4 rounded-full bg-[var(--border)] text-[var(--muted)] text-[14px] font-medium cursor-not-allowed shrink-0"
+          className="hidden sm:inline-flex h-[36px] px-4 rounded-full bg-[var(--border)] text-[var(--muted)] text-[14px] font-medium cursor-not-allowed shrink-0"
         >
           {postButtonLabel}
         </button>

@@ -174,3 +174,43 @@ paths:
   /api/support:
     post:
       summary: Submit contact message to legal support
+
+  /api/posts:
+    get:
+      summary: Get paginated feed posts with topic, tab, verified, and media filters
+    post:
+      summary: Create new post with citations, documents, and media alts
+
+  /api/posts/{id}:
+    get:
+      summary: Get post by ID
+    patch:
+      summary: Update post content
+    delete:
+      summary: Delete post
+
+  /api/posts/{id}/not-interested:
+    post:
+      summary: Mark topic/post as not interested for algorithmic feed
+
+  /api/posts/{id}/like:
+    post:
+      summary: Toggle like on post
+
+  /api/posts/{id}/bookmark:
+    post:
+      summary: Toggle bookmark on post
+
+  /api/translate:
+    post:
+      summary: Translate legal post content between EN, RW, and FR
+
+  /api/search/suggest:
+    get:
+      summary: Suggest statutory laws and legal terms
+
+  /api/stories:
+    get:
+      summary: Retrieve active legal stories and gazette alerts
+    post:
+      summary: Post temporary legal story or official bulletin

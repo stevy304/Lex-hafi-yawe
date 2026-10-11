@@ -466,6 +466,36 @@ class Database {
     return this.data.users.find(u => u.id === id) || null;
   }
 
+  public upsertUser(user: Partial<User> & { id: string }): User {
+    const existing = this.data.users.find(u => u.id === user.id);
+    if (existing) {
+      Object.assign(existing, user);
+      this.persist();
+      return existing;
+    }
+    const newUser: User = {
+      id: user.id,
+      name: user.name || 'User',
+      username: user.username || `user_${Date.now()}`,
+      role: user.role || 'citizen',
+      isVerified: Boolean(user.isVerified),
+      verificationType: user.verificationType,
+      professionalTitle: user.professionalTitle,
+      email: user.email || `${user.id}@lex.rw`,
+      phone: user.phone || '+250788000000',
+      bio: user.bio || '',
+      location: user.location || 'Kigali, Rwanda',
+      languages: user.languages || ['Kinyarwanda', 'English'],
+      joinedDate: user.joinedDate || new Date().toISOString(),
+      followersCount: user.followersCount || 0,
+      followingCount: user.followingCount || 0,
+      postsCount: user.postsCount || 0,
+    };
+    this.data.users.push(newUser);
+    this.persist();
+    return newUser;
+  }
+
   public updateUserProfile(userId: string, updates: Partial<User>): User | null {
     const index = this.data.users.findIndex(u => u.id === userId);
     if (index === -1) return null;

@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { CheckBadge, ChevronLeft, ChevronRight, Image as ImageIcon } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Image as ImageIcon } from 'lucide-react';
 
 export const TOPICS = [
   'All topics',

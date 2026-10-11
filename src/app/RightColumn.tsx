@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Phone, ShieldCheck, ExternalLink, UserCheck } from 'lucide-react';
+import { Search, Phone, ShieldCheck } from 'lucide-react';
 import { useApp } from '../context/AppContext';
-import { User } from '../types';
 
-export const RightColumn: React.FC = () => {
+export interface RightColumnProps {
+  mode?: 'full' | 'minimal';
+}
+
+export const RightColumn: React.FC<RightColumnProps> = ({ mode = 'full' }) => {
   const { users, currentUser, setActiveView } = useApp();
   const [kigaliTime, setKigaliTime] = useState('');
   const [followingMap, setFollowingMap] = useState<Record<string, boolean>>({});
@@ -55,24 +58,30 @@ export const RightColumn: React.FC = () => {
 
   return (
     <aside
-      className="hidden xl:block w-[320px] 2xl:w-[350px] shrink-0 sticky top-0 h-screen overflow-y-auto no-scrollbar p-4 space-y-4 select-none"
+      className="hidden min-[1200px]:flex flex-col gap-3 shrink-0 select-none w-[320px] 2xl:w-[350px] p-3 px-4 overflow-y-auto no-scrollbar border-l border-[var(--border)] bg-[var(--bg)]"
+      style={{
+        height: '100dvh',
+        scrollbarWidth: 'none',
+      }}
     >
-      {/* 1. Search Box with Ctrl K / Cmd K hint */}
-      <div className="relative">
-        <Search className="absolute left-3.5 top-3 w-4 h-4 text-[var(--muted)]" />
-        <input
-          id="right-sidebar-search-input"
-          type="text"
-          placeholder="Search Lex Hafi Yawe"
-          className="w-full h-[40px] pl-10 pr-12 rounded-full bg-[var(--surface)] border border-[var(--border)] text-[14px] text-[var(--text)] placeholder:text-[var(--muted)] focus:outline-none focus:border-[var(--accent)] transition-colors"
-        />
-        <kbd className="absolute right-3.5 top-2.5 px-1.5 py-0.5 rounded bg-[var(--bg)] border border-[var(--border)] font-mono text-[10px] text-[var(--muted)]">
-          ⌘K
-        </kbd>
-      </div>
+      {/* 1. Search Box with Ctrl K / Cmd K hint (Hidden in minimal mode) */}
+      {mode === 'full' && (
+        <div data-testid="search-box" className="relative shrink-0">
+          <Search className="absolute left-3.5 top-3 w-4 h-4 text-[var(--muted)]" />
+          <input
+            id="right-sidebar-search-input"
+            type="text"
+            placeholder="Search Lex Hafi Yawe"
+            className="w-full h-[40px] pl-10 pr-12 rounded-full bg-[var(--surface)] border border-[var(--border)] text-[14px] text-[var(--text)] placeholder:text-[var(--muted)] focus:outline-none focus:border-[var(--accent)] transition-colors"
+          />
+          <kbd className="absolute right-3.5 top-2.5 px-1.5 py-0.5 rounded bg-[var(--bg)] border border-[var(--border)] font-mono text-[10px] text-[var(--muted)]">
+            ⌘K
+          </kbd>
+        </div>
+      )}
 
       {/* 2. Status line: Green dot + IECMS integrated + Kigali time */}
-      <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-[var(--surface)] border border-[var(--border)] text-[12px]">
+      <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-[var(--surface)] border border-[var(--border)] text-[12px] shrink-0">
         <div className="flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-[#1D9E75] animate-pulse shrink-0" />
           <span className="font-medium text-[var(--text)]">IECMS integrated</span>
@@ -83,7 +92,7 @@ export const RightColumn: React.FC = () => {
       </div>
 
       {/* 3. MAJ Card (Need free legal help?) */}
-      <div className="p-4 rounded-xl bg-[var(--surface)] border border-[var(--border)] space-y-2.5">
+      <div data-testid="maj-card" className="p-4 rounded-xl bg-[var(--surface)] border border-[var(--border)] space-y-2.5 shrink-0">
         <div className="flex items-center gap-2">
           <ShieldCheck className="w-4 h-4 text-[var(--accent)]" />
           <h3 className="text-[14px] font-semibold text-[var(--text)]">Need free legal help?</h3>
@@ -109,61 +118,76 @@ export const RightColumn: React.FC = () => {
         </div>
       </div>
 
-      {/* 4. Trending legal topics (max 5) */}
-      <div className="p-4 rounded-xl bg-[var(--surface)] border border-[var(--border)] space-y-3">
-        <h3 className="text-[14px] font-semibold text-[var(--text)]">Trending legal topics</h3>
-        <div className="space-y-2.5">
-          {TRENDING_TOPICS.map((item) => (
-            <div key={item.tag} className="space-y-0.5">
-              <span className="text-[11px] text-[var(--muted)] block">Statutory topic</span>
-              <a
-                href={`/search?q=${encodeURIComponent(item.tag)}`}
-                className="text-[13px] font-semibold text-[var(--text)] hover:text-[var(--accent)] transition-colors block"
-              >
-                {item.tag}
-              </a>
-              <span className="text-[12px] text-[var(--muted)] block">{item.topic}</span>
-            </div>
-          ))}
+      {/* 4. Trending legal topics (max 5) - Hidden in minimal mode */}
+      {mode === 'full' && (
+        <div data-testid="trending-card" className="p-4 rounded-xl bg-[var(--surface)] border border-[var(--border)] space-y-2 shrink-0">
+          <div>
+            <h3 className="text-[15px] font-semibold text-[var(--text)]">Trending legal topics</h3>
+            <span className="text-[12px] text-[var(--muted)] block">Statutory topics</span>
+          </div>
+          <div className="divide-y divide-[var(--border)]">
+            {TRENDING_TOPICS.slice(0, 5).map((item) => (
+              <div key={item.tag} className="py-2 space-y-0.5">
+                <a
+                  href={`/search?q=${encodeURIComponent(item.tag)}`}
+                  className="text-[14px] font-medium text-[var(--text)] hover:text-[var(--accent)] transition-colors block truncate"
+                >
+                  {item.tag}
+                </a>
+                <span className="text-[13px] text-[var(--muted)] block truncate">{item.topic}</span>
+              </div>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* 5. Verified advocates to follow (HIDE when empty) */}
+      {/* 5. Verified advocates to follow (HIDE when empty) - Defect 7 fix */}
       {verifiedAdvocates.length > 0 && (
-        <div className="p-4 rounded-xl bg-[var(--surface)] border border-[var(--border)] space-y-3">
-          <h3 className="text-[14px] font-semibold text-[var(--text)]">Verified advocates to follow</h3>
+        <div data-testid="advocates-card" className="p-4 rounded-xl bg-[var(--surface)] border border-[var(--border)] space-y-3 shrink-0">
+          <h3 className="text-[15px] font-semibold text-[var(--text)]">Verified advocates to follow</h3>
           <div className="space-y-3">
-            {verifiedAdvocates.map((advocate) => {
+            {verifiedAdvocates.slice(0, 3).map((advocate) => {
               const isFollowing = followingMap[advocate.id];
               return (
-                <div key={advocate.id} className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <div className="w-9 h-9 rounded-full bg-[var(--bg)] border border-[var(--border)] overflow-hidden shrink-0 flex items-center justify-center font-bold text-xs text-[var(--text)]">
-                      {advocate.avatar ? (
-                        <img
-                          src={advocate.avatar}
-                          alt={advocate.name}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <span>{advocate.name.slice(0, 2).toUpperCase()}</span>
-                      )}
+                <div
+                  key={advocate.id}
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: '36px minmax(0, 1fr) auto',
+                    gap: '10px',
+                    alignItems: 'center',
+                  }}
+                >
+                  <div className="w-[36px] h-[36px] rounded-full bg-[var(--bg)] border border-[var(--border)] overflow-hidden shrink-0 flex items-center justify-center font-bold text-xs text-[var(--text)]">
+                    {advocate.avatar ? (
+                      <img
+                        src={advocate.avatar}
+                        alt={advocate.name}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <span>{advocate.name.slice(0, 2).toUpperCase()}</span>
+                    )}
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1 min-w-0">
+                      <span
+                        className="font-medium text-[13px] text-[var(--text)] truncate"
+                        title={advocate.name}
+                      >
+                        {advocate.name}
+                      </span>
+                      <span className="text-[var(--gold)] text-xs shrink-0" aria-label="Verified advocate">✓</span>
                     </div>
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-1 font-medium text-[13px] text-[var(--text)] truncate">
-                        <span className="truncate">{advocate.name}</span>
-                        <span className="text-[var(--gold)] text-xs shrink-0">✓</span>
-                      </div>
-                      <div className="text-[11px] text-[var(--muted)] truncate">
-                        @{advocate.username}
-                      </div>
+                    <div className="text-[12px] text-[var(--muted)] truncate">
+                      @{advocate.username}
                     </div>
                   </div>
 
                   <button
                     type="button"
                     onClick={() => toggleFollow(advocate.id)}
-                    className={`h-7 px-3 rounded-full text-[12px] font-semibold transition-colors cursor-pointer shrink-0 ${
+                    className={`h-[28px] px-3 rounded-full text-[12px] font-semibold transition-colors cursor-pointer shrink-0 whitespace-nowrap ${
                       isFollowing
                         ? 'border border-[var(--border)] text-[var(--text)] hover:border-[var(--danger)] hover:text-[var(--danger)]'
                         : 'bg-[var(--text)] text-[var(--bg)] hover:opacity-90'
@@ -178,8 +202,18 @@ export const RightColumn: React.FC = () => {
         </div>
       )}
 
-      {/* 6. Footer: single wrapped 12px line */}
-      <footer className="text-[12px] text-[var(--muted)] leading-relaxed pt-2 px-1">
+      {/* 6. Footer: single wrapped 12px line - Defect 8 fix */}
+      <footer
+        data-testid="right-footer"
+        style={{
+          marginTop: 'auto',
+          paddingTop: '8px',
+          position: 'sticky',
+          bottom: 0,
+          background: 'var(--bg)',
+        }}
+        className="text-[12px] text-[var(--muted)] leading-relaxed px-1 shrink-0"
+      >
         <div className="flex flex-wrap gap-x-3 gap-y-1">
           <a href="/about" className="hover:underline">About</a>
           <a href="/help" className="hover:underline">Help</a>

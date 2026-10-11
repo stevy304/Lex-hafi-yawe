@@ -1,282 +1,274 @@
 import React, { useState } from 'react';
 import {
-  Shield,
-  Users,
   ShieldCheck,
-  Flag,
-  FileCheck,
-  AlertTriangle,
   CheckCircle,
-  XCircle,
-  ExternalLink,
   History,
   Activity,
-  Award,
-  X
+  X,
+  FileCheck,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
+import { PageHeader } from '../common/PageHeader';
+import { Card } from '../common/Card';
+import { EmptyState } from '../common/EmptyState';
 
 export const AdminDashboard: React.FC = () => {
   const {
     users,
-    posts,
     reports,
     resolveReport,
     verificationApplications,
     approveVerification,
     rejectVerification,
     auditLogs,
-    communities,
     appointments,
-    currentUser
+    currentUser,
   } = useApp();
 
   const [activeTab, setActiveTab] = useState<'overview' | 'verifications' | 'moderation' | 'audit'>('overview');
-  const [inspectDoc, setInspectDoc] = useState<{ title: string; subtitle: string; details: string; applicantName: string } | null>(null);
+  const [inspectDoc, setInspectDoc] = useState<{
+    title: string;
+    subtitle: string;
+    details: string;
+    applicantName: string;
+  } | null>(null);
 
-  const pendingVerifications = verificationApplications.filter(v => v.status === 'pending');
-  const pendingReports = reports.filter(r => r.status === 'pending');
-  const verifiedAdvocatesCount = users.filter(u => u.role === 'advocate' && u.isVerified).length;
+  const pendingVerifications = verificationApplications.filter((v) => v.status === 'pending');
+  const pendingReports = reports.filter((r) => r.status === 'pending');
+  const verifiedAdvocatesCount = users.filter((u) => u.role === 'advocate' && u.isVerified).length;
 
   return (
-    <div className="min-h-screen bg-slate-50/50">
-      {/* Top Header */}
-      <div className="bg-white border-b border-slate-200 px-4 sm:px-6 py-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="p-2 bg-blue-900 text-white rounded-xl">
-              <Shield className="w-5 h-5 text-amber-400" />
-            </div>
-            <div>
-              <h1 className="text-lg font-black text-slate-900">
-                Platform Operations & Trust Management
-              </h1>
-              <p className="text-2xs text-slate-500 font-semibold">
-                Access Level: {currentUser?.role === 'admin' ? `Administrator (${currentUser.name})` : 'Public Auditor (Read-Only Compliance Preview)'}
-              </p>
-            </div>
-          </div>
-
-          <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2.5 py-1 rounded-full border border-emerald-200">
-            Active System Integrity Monitor
-          </span>
-        </div>
-
-        {/* Navigation Tabs */}
-        <div className="flex gap-2 mt-4 text-xs font-bold">
+    <div className="relative flex-1 min-w-0 max-w-[880px] w-full border-x border-[var(--border)] bg-[var(--bg)] h-screen overflow-y-auto no-scrollbar outline-none select-text">
+      <PageHeader
+        title="Operations & Trust"
+        subtitle={
+          currentUser?.role === 'admin'
+            ? `Administrator (${currentUser.name})`
+            : 'Public auditor (read-only compliance preview)'
+        }
+      >
+        <div className="flex gap-1.5 overflow-x-auto no-scrollbar pt-1 text-[13px] font-medium">
           <button
+            type="button"
             onClick={() => setActiveTab('overview')}
-            className={`px-3.5 py-1.5 rounded-xl transition ${
+            className={`px-3 py-1 rounded-full transition-colors whitespace-nowrap cursor-pointer ${
               activeTab === 'overview'
-                ? 'bg-blue-700 text-white'
-                : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                ? 'bg-[var(--accent)] text-white'
+                : 'bg-[var(--surface)] text-[var(--muted)] hover:text-[var(--text)] border border-[var(--border)]'
             }`}
           >
-            Metrics Overview
+            Metrics overview
           </button>
           <button
+            type="button"
             onClick={() => setActiveTab('verifications')}
-            className={`px-3.5 py-1.5 rounded-xl transition flex items-center gap-1.5 ${
+            className={`px-3 py-1 rounded-full transition-colors whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
               activeTab === 'verifications'
-                ? 'bg-blue-700 text-white'
-                : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                ? 'bg-[var(--accent)] text-white'
+                : 'bg-[var(--surface)] text-[var(--muted)] hover:text-[var(--text)] border border-[var(--border)]'
             }`}
           >
-            <span>Bar Verifications</span>
+            <span>Bar verifications</span>
             {pendingVerifications.length > 0 && (
-              <span className="w-4 h-4 rounded-full bg-amber-400 text-slate-950 text-[10px] flex items-center justify-center font-black">
+              <span className="w-4 h-4 rounded-full bg-[var(--gold)] text-black text-[10px] flex items-center justify-center font-bold">
                 {pendingVerifications.length}
               </span>
             )}
           </button>
           <button
+            type="button"
             onClick={() => setActiveTab('moderation')}
-            className={`px-3.5 py-1.5 rounded-xl transition flex items-center gap-1.5 ${
+            className={`px-3 py-1 rounded-full transition-colors whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
               activeTab === 'moderation'
-                ? 'bg-blue-700 text-white'
-                : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                ? 'bg-[var(--accent)] text-white'
+                : 'bg-[var(--surface)] text-[var(--muted)] hover:text-[var(--text)] border border-[var(--border)]'
             }`}
           >
-            <span>Reports & Compliance</span>
+            <span>Reports & compliance</span>
             {pendingReports.length > 0 && (
-              <span className="w-4 h-4 rounded-full bg-red-600 text-white text-[10px] flex items-center justify-center font-bold">
+              <span className="w-4 h-4 rounded-full bg-[var(--danger)] text-white text-[10px] flex items-center justify-center font-bold">
                 {pendingReports.length}
               </span>
             )}
           </button>
           <button
+            type="button"
             onClick={() => setActiveTab('audit')}
-            className={`px-3.5 py-1.5 rounded-xl transition ${
+            className={`px-3 py-1 rounded-full transition-colors whitespace-nowrap cursor-pointer ${
               activeTab === 'audit'
-                ? 'bg-blue-700 text-white'
-                : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                ? 'bg-[var(--accent)] text-white'
+                : 'bg-[var(--surface)] text-[var(--muted)] hover:text-[var(--text)] border border-[var(--border)]'
             }`}
           >
-            Audit Log
+            Audit log
           </button>
         </div>
-      </div>
+      </PageHeader>
 
-      {/* Content Container */}
-      <div className="p-4 sm:p-6 max-w-4xl space-y-6">
+      <div className="p-4 space-y-4">
         {/* OVERVIEW TAB */}
         {activeTab === 'overview' && (
           <div className="space-y-4">
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs">
-                <span className="text-2xs font-bold uppercase tracking-wider text-slate-500">
-                  Total Users
+              <Card>
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--muted)]">
+                  Total users
                 </span>
-                <p className="text-xl font-black text-slate-900 mt-1">
+                <p className="text-[22px] font-semibold text-[var(--text)] mt-1 m-0">
                   {users.length.toLocaleString()}
                 </p>
-                <span className="text-[10px] text-emerald-600 font-semibold">Citizens & Advocates</span>
-              </div>
+                <span className="text-[11px] text-[var(--ok-text)] font-medium">Citizens and advocates</span>
+              </Card>
 
-              <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs">
-                <span className="text-2xs font-bold uppercase tracking-wider text-slate-500">
-                  Verified Advocates
+              <Card>
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--muted)]">
+                  Verified advocates
                 </span>
-                <p className="text-xl font-black text-blue-700 mt-1">
+                <p className="text-[22px] font-semibold text-[var(--accent)] mt-1 m-0">
                   {verifiedAdvocatesCount}
                 </p>
-                <span className="text-[10px] text-blue-600 font-semibold">RBA Certified Roll</span>
-              </div>
+                <span className="text-[11px] text-[var(--gold)] font-medium">RBA certified roll</span>
+              </Card>
 
-              <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs">
-                <span className="text-2xs font-bold uppercase tracking-wider text-slate-500">
-                  Open Reports
+              <Card>
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--muted)]">
+                  Open reports
                 </span>
-                <p className="text-xl font-black text-red-600 mt-1">
+                <p className="text-[22px] font-semibold text-[var(--danger)] mt-1 m-0">
                   {pendingReports.length}
                 </p>
-                <span className="text-[10px] text-red-500 font-semibold">Requires review</span>
-              </div>
+                <span className="text-[11px] text-[var(--danger)] font-medium">Requires review</span>
+              </Card>
 
-              <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs">
-                <span className="text-2xs font-bold uppercase tracking-wider text-slate-500">
+              <Card>
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--muted)]">
                   Consultations
                 </span>
-                <p className="text-xl font-black text-emerald-700 mt-1">
+                <p className="text-[22px] font-semibold text-[var(--ok-text)] mt-1 m-0">
                   {appointments.length}
                 </p>
-                <span className="text-[10px] text-emerald-600 font-semibold">Scheduled / Held</span>
-              </div>
+                <span className="text-[11px] text-[var(--ok-text)] font-medium">Scheduled / held</span>
+              </Card>
             </div>
 
             {/* Platform Compliance Status */}
-            <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800 mb-3 flex items-center gap-1.5">
-                <Activity className="w-4 h-4 text-blue-600" />
-                <span>Regulatory Standards Compliance Checklist</span>
+            <Card>
+              <h3 className="text-[12px] font-semibold uppercase tracking-wider text-[var(--muted)] mb-3 flex items-center gap-1.5 m-0">
+                <Activity className="w-4 h-4 text-[var(--accent)]" />
+                <span>Regulatory standards compliance checklist</span>
               </h3>
 
-              <div className="space-y-2 text-xs">
-                <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 border border-slate-100">
+              <div className="space-y-2 text-[13px]">
+                <div className="flex items-center justify-between p-2.5 rounded-[8px] bg-[var(--bg)] border border-[var(--border)]">
                   <div className="flex items-center gap-2">
-                    <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
-                    <span>Rwanda Bar Association (RBA) Roll Synchronization</span>
+                    <CheckCircle className="w-4 h-4 text-[var(--ok-text)] shrink-0" />
+                    <span>Rwanda Bar Association (RBA) roll synchronization</span>
                   </div>
-                  <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded">Active</span>
+                  <span className="text-[11px] font-medium text-[var(--ok-text)] bg-[var(--ok-bg)] px-2 py-0.5 rounded">Active</span>
                 </div>
 
-                <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 border border-slate-100">
+                <div className="flex items-center justify-between p-2.5 rounded-[8px] bg-[var(--bg)] border border-[var(--border)]">
                   <div className="flex items-center gap-2">
-                    <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
-                    <span>Law N° 058/2021 Data Protection & Privacy Compliance</span>
+                    <CheckCircle className="w-4 h-4 text-[var(--ok-text)] shrink-0" />
+                    <span>Law N° 058/2021 data protection and privacy compliance</span>
                   </div>
-                  <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded">Compliant</span>
+                  <span className="text-[11px] font-medium text-[var(--ok-text)] bg-[var(--ok-bg)] px-2 py-0.5 rounded">Compliant</span>
                 </div>
 
-                <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 border border-slate-100">
+                <div className="flex items-center justify-between p-2.5 rounded-[8px] bg-[var(--bg)] border border-[var(--border)]">
                   <div className="flex items-center gap-2">
-                    <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
-                    <span>MINIJUST MAJ Access to Justice Direct Referrals API</span>
+                    <CheckCircle className="w-4 h-4 text-[var(--ok-text)] shrink-0" />
+                    <span>MINIJUST MAJ access to justice direct referrals API</span>
                   </div>
-                  <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded">Connected</span>
+                  <span className="text-[11px] font-medium text-[var(--ok-text)] bg-[var(--ok-bg)] px-2 py-0.5 rounded">Connected</span>
                 </div>
               </div>
-            </div>
+            </Card>
           </div>
         )}
 
         {/* VERIFICATIONS QUEUE TAB */}
         {activeTab === 'verifications' && (
           <div className="space-y-3">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">
-              Pending Advocate Bar Credentials Verification ({pendingVerifications.length})
+            <h3 className="text-[12px] font-semibold uppercase tracking-wider text-[var(--muted)] m-0">
+              Pending advocate bar credentials verification ({pendingVerifications.length})
             </h3>
 
             {pendingVerifications.length === 0 ? (
-              <div className="p-8 text-center bg-white rounded-2xl border border-slate-200 text-xs text-slate-500">
-                No pending bar verification requests at this moment.
-              </div>
+              <EmptyState
+                icon={<ShieldCheck className="w-6 h-6 text-[var(--muted)]" />}
+                title="No pending requests"
+                description="No pending bar verification requests at this moment."
+              />
             ) : (
-              pendingVerifications.map(app => (
-                <div
-                  key={app.id}
-                  className="bg-white border border-slate-200 rounded-2xl p-4 sm:p-5 shadow-xs space-y-3"
-                >
-                  <div className="flex items-start justify-between gap-2">
+              pendingVerifications.map((app) => (
+                <Card key={app.id}>
+                  <div className="flex items-start justify-between gap-2 mb-2">
                     <div>
-                      <h4 className="text-sm font-bold text-slate-900">{app.fullName}</h4>
-                      <p className="text-xs text-blue-700 font-semibold">
-                        Bar Roll: {app.barRollNumber} • {app.lawFirmName}
+                      <h4 className="text-[15px] font-medium text-[var(--text)] m-0">{app.fullName}</h4>
+                      <p className="text-[12px] text-[var(--accent)] font-medium m-0 mt-0.5">
+                        Bar roll: {app.barRollNumber} • {app.lawFirmName}
                       </p>
-                      <p className="text-2xs text-slate-500">
+                      <p className="text-[12px] text-[var(--muted)] m-0 mt-0.5">
                         Experience: {app.yearsOfExperience} years • Areas: {app.practiceAreas.join(', ')}
                       </p>
                     </div>
 
-                    <span className="px-2.5 py-0.5 bg-amber-100 text-amber-800 text-[10px] font-bold rounded-full">
-                      Pending Bar Roll Audit
+                    <span className="px-2.5 py-0.5 bg-[var(--gold)]/15 text-[var(--gold)] text-[11px] font-medium rounded-full shrink-0">
+                      Pending bar audit
                     </span>
                   </div>
 
-                  <div className="flex flex-wrap gap-2 text-2xs text-slate-600">
+                  <div className="flex flex-wrap gap-2 text-[12px] pt-1">
                     <button
                       type="button"
-                      onClick={() => setInspectDoc({
-                        title: 'Bachelor of Laws (LL.B) Degree Certificate',
-                        subtitle: 'National University of Rwanda / University of Rwanda (UR)',
-                        details: `Degree conferred to ${app.fullName}. Verified curriculum in Rwandan Private & Public Law, Civil Procedure, and Commercial Arbitration.`,
-                        applicantName: app.fullName
-                      })}
-                      className="px-2.5 py-1.5 bg-slate-100 hover:bg-blue-50 hover:text-blue-700 rounded-lg flex items-center gap-1 font-semibold transition cursor-pointer"
+                      onClick={() =>
+                        setInspectDoc({
+                          title: 'Bachelor of Laws (LL.B) Degree Certificate',
+                          subtitle: 'University of Rwanda (UR)',
+                          details: `Degree conferred to ${app.fullName}. Verified curriculum in Rwandan private and public law.`,
+                          applicantName: app.fullName,
+                        })
+                      }
+                      className="px-2.5 py-1.5 bg-[var(--bg)] hover:bg-[var(--hover)] border border-[var(--border)] rounded-[8px] flex items-center gap-1 font-medium transition-colors cursor-pointer text-[var(--text)]"
                     >
-                      <FileCheck className="w-3.5 h-3.5 text-blue-600" />
-                      <span>Inspect LLB Degree</span>
+                      <FileCheck className="w-3.5 h-3.5 text-[var(--accent)]" />
+                      <span>Inspect LLB degree</span>
                     </button>
                     <button
                       type="button"
-                      onClick={() => setInspectDoc({
-                        title: 'Rwanda Bar Association (RBA) Practicing Certificate',
-                        subtitle: `Roll Number: ${app.barRollNumber}`,
-                        details: `Official annual practicing certificate issued by the Rwanda Bar Association Secretariat. Roll Registration: ${app.barRollNumber} for ${app.fullName} at ${app.lawFirmName}.`,
-                        applicantName: app.fullName
-                      })}
-                      className="px-2.5 py-1.5 bg-slate-100 hover:bg-blue-50 hover:text-blue-700 rounded-lg flex items-center gap-1 font-semibold transition cursor-pointer"
+                      onClick={() =>
+                        setInspectDoc({
+                          title: 'Rwanda Bar Association (RBA) Practicing Certificate',
+                          subtitle: `Roll number: ${app.barRollNumber}`,
+                          details: `Official annual practicing certificate issued by the Rwanda Bar Association Secretariat for ${app.fullName}.`,
+                          applicantName: app.fullName,
+                        })
+                      }
+                      className="px-2.5 py-1.5 bg-[var(--bg)] hover:bg-[var(--hover)] border border-[var(--border)] rounded-[8px] flex items-center gap-1 font-medium transition-colors cursor-pointer text-[var(--text)]"
                     >
-                      <FileCheck className="w-3.5 h-3.5 text-blue-600" />
-                      <span>Inspect RBA Bar Certificate</span>
+                      <FileCheck className="w-3.5 h-3.5 text-[var(--accent)]" />
+                      <span>Inspect RBA certificate</span>
                     </button>
                   </div>
 
-                  <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+                  <div className="flex justify-end gap-2 pt-2 border-t border-[var(--border)] mt-3">
                     <button
+                      type="button"
                       onClick={() => rejectVerification(app.id, 'Bar certificate roll verification failed.')}
-                      className="px-3.5 py-1.5 text-xs text-red-600 hover:bg-red-50 rounded-xl font-bold"
+                      className="px-3.5 py-1.5 text-[12px] text-[var(--danger)] hover:bg-[var(--hover)] rounded-full font-medium cursor-pointer"
                     >
-                      Reject Application
+                      Reject application
                     </button>
                     <button
+                      type="button"
                       onClick={() => approveVerification(app.id, 'Confirmed against active Rwanda Bar Association Roll.')}
-                      className="px-4 py-1.5 text-xs font-bold bg-blue-700 hover:bg-blue-800 text-white rounded-xl shadow-xs"
+                      className="px-4 py-1.5 text-[12px] font-medium bg-[var(--accent)] hover:brightness-110 text-white rounded-full cursor-pointer"
                     >
-                      Approve & Grant Advocate Status
+                      Approve advocate
                     </button>
                   </div>
-                </div>
+                </Card>
               ))
             )}
           </div>
@@ -285,53 +277,54 @@ export const AdminDashboard: React.FC = () => {
         {/* MODERATION QUEUE TAB */}
         {activeTab === 'moderation' && (
           <div className="space-y-3">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">
-              Reported Content & Compliance Review Queue ({pendingReports.length})
+            <h3 className="text-[12px] font-semibold uppercase tracking-wider text-[var(--muted)] m-0">
+              Reported content and compliance review ({pendingReports.length})
             </h3>
 
             {pendingReports.length === 0 ? (
-              <div className="p-8 text-center bg-white rounded-2xl border border-slate-200 text-xs text-slate-500">
-                All reported items have been investigated and resolved!
-              </div>
+              <EmptyState
+                icon={<CheckCircle className="w-6 h-6 text-[var(--ok-text)]" />}
+                title="Review queue clear"
+                description="All reported items have been investigated and resolved."
+              />
             ) : (
-              pendingReports.map(report => (
-                <div
-                  key={report.id}
-                  className="bg-white border border-slate-200 rounded-2xl p-4 sm:p-5 shadow-xs space-y-3"
-                >
-                  <div className="flex items-start justify-between gap-2">
+              pendingReports.map((report) => (
+                <Card key={report.id}>
+                  <div className="flex items-start justify-between gap-2 mb-2">
                     <div>
-                      <span className="text-[10px] font-bold uppercase tracking-wider bg-red-100 text-red-800 px-2 py-0.5 rounded">
+                      <span className="text-[11px] font-medium uppercase tracking-wider bg-[var(--danger)]/15 text-[var(--danger)] px-2 py-0.5 rounded">
                         {report.category.replace('_', ' ')}
                       </span>
-                      <p className="text-xs text-slate-800 mt-1.5 font-medium">
+                      <p className="text-[13px] text-[var(--text)] mt-1.5 font-medium m-0">
                         <strong>Reason:</strong> {report.details}
                       </p>
                     </div>
-                    <span className="text-2xs text-slate-400">
+                    <span className="text-[11px] text-[var(--muted)] shrink-0">
                       {new Date(report.createdAt).toLocaleDateString()}
                     </span>
                   </div>
 
-                  <div className="bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-2xs text-slate-700 italic">
+                  <div className="bg-[var(--bg)] border border-[var(--border)] rounded-[8px] p-2.5 text-[12px] text-[var(--muted)] italic my-2">
                     "{report.targetPreview}"
                   </div>
 
-                  <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+                  <div className="flex justify-end gap-2 pt-2 border-t border-[var(--border)]">
                     <button
+                      type="button"
                       onClick={() => resolveReport(report.id, false, 'Report reviewed and determined non-violating.')}
-                      className="px-3.5 py-1.5 text-xs text-slate-600 hover:bg-slate-100 rounded-xl font-semibold"
+                      className="px-3.5 py-1.5 text-[12px] text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--hover)] rounded-full font-medium cursor-pointer"
                     >
-                      Dismiss Report
+                      Dismiss report
                     </button>
                     <button
-                      onClick={() => resolveReport(report.id, true, 'Violation confirmed. Content removed and user warned.')}
-                      className="px-4 py-1.5 text-xs font-bold bg-red-600 hover:bg-red-700 text-white rounded-xl shadow-xs"
+                      type="button"
+                      onClick={() => resolveReport(report.id, true, 'Violation confirmed. Content removed.')}
+                      className="px-4 py-1.5 text-[12px] font-medium bg-[var(--danger)] hover:opacity-90 text-white rounded-full cursor-pointer"
                     >
-                      Enforce Removal & Warning
+                      Enforce removal
                     </button>
                   </div>
-                </div>
+                </Card>
               ))
             )}
           </div>
@@ -339,75 +332,76 @@ export const AdminDashboard: React.FC = () => {
 
         {/* AUDIT LOG TAB */}
         {activeTab === 'audit' && (
-          <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-xs space-y-3">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
-              <History className="w-4 h-4 text-blue-600" />
-              <span>Immutable System Operations Audit Trail</span>
+          <Card>
+            <h3 className="text-[12px] font-semibold uppercase tracking-wider text-[var(--muted)] flex items-center gap-1.5 mb-3 m-0">
+              <History className="w-4 h-4 text-[var(--accent)]" />
+              <span>Immutable operations audit trail</span>
             </h3>
 
-            <div className="divide-y divide-slate-100 text-xs">
-              {auditLogs.map(log => (
+            <div className="divide-y divide-[var(--border)] text-[13px]">
+              {auditLogs.map((log) => (
                 <div key={log.id} className="py-2.5 flex items-start justify-between gap-3">
                   <div>
-                    <span className="font-mono text-2xs font-bold text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded">
+                    <span className="font-mono text-[11px] font-medium text-[var(--gold)] bg-[var(--bg)] border border-[var(--border)] px-1.5 py-0.5 rounded">
                       {log.action}
                     </span>
-                    <p className="font-semibold text-slate-900 mt-0.5">{log.target}</p>
-                    <p className="text-2xs text-slate-500">{log.details}</p>
+                    <p className="font-medium text-[var(--text)] mt-1 m-0">{log.target}</p>
+                    <p className="text-[12px] text-[var(--muted)] m-0">{log.details}</p>
                   </div>
-                  <span className="text-2xs text-slate-400 shrink-0">
+                  <span className="text-[11px] text-[var(--muted)] shrink-0">
                     {new Date(log.timestamp).toLocaleDateString()}
                   </span>
                 </div>
               ))}
             </div>
-          </div>
+          </Card>
         )}
       </div>
 
       {/* Credential Inspection Modal */}
       {inspectDoc && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/70 backdrop-blur-xs">
-          <div className="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl p-5 space-y-4">
-            <div className="flex items-start justify-between border-b border-slate-100 pb-3">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs">
+          <div className="relative w-full max-w-lg bg-[var(--surface)] border border-[var(--border)] rounded-[12px] shadow-2xl p-5 space-y-4">
+            <div className="flex items-start justify-between border-b border-[var(--border)] pb-3">
               <div className="flex items-center gap-2.5">
-                <div className="w-10 h-10 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center">
+                <div className="w-10 h-10 rounded-full bg-[var(--bg)] border border-[var(--border)] text-[var(--accent)] flex items-center justify-center">
                   <ShieldCheck className="w-6 h-6" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-slate-900 leading-tight">
+                  <h3 className="text-[16px] font-semibold text-[var(--text)] m-0 leading-tight">
                     {inspectDoc.title}
                   </h3>
-                  <p className="text-2xs text-slate-500 font-semibold mt-0.5">
+                  <p className="text-[12px] text-[var(--muted)] m-0 mt-0.5">
                     {inspectDoc.subtitle}
                   </p>
                 </div>
               </div>
               <button
+                type="button"
                 onClick={() => setInspectDoc(null)}
-                className="p-1 text-slate-400 hover:text-slate-800 rounded-lg"
+                className="p-1 text-[var(--muted)] hover:text-[var(--text)] cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 text-xs space-y-2">
-              <p className="text-slate-800 leading-relaxed">
+            <div className="bg-[var(--bg)] border border-[var(--border)] rounded-[8px] p-4 text-[13px] space-y-2">
+              <p className="text-[var(--text)] leading-relaxed m-0">
                 {inspectDoc.details}
               </p>
-              <div className="pt-2 border-t border-slate-200 text-2xs text-slate-500 flex items-center justify-between">
-                <span>Applicant: <strong>{inspectDoc.applicantName}</strong></span>
-                <span className="text-emerald-700 font-bold">● Validated Record Hash</span>
+              <div className="pt-2 border-t border-[var(--border)] text-[11px] text-[var(--muted)] flex items-center justify-between">
+                <span>Applicant: <strong className="text-[var(--text)]">{inspectDoc.applicantName}</strong></span>
+                <span className="text-[var(--ok-text)] font-medium">● Validated record hash</span>
               </div>
             </div>
 
-            <div className="flex justify-end pt-2 border-t border-slate-100">
+            <div className="flex justify-end pt-2 border-t border-[var(--border)]">
               <button
                 type="button"
                 onClick={() => setInspectDoc(null)}
-                className="px-4 py-2 bg-blue-700 hover:bg-blue-800 text-white rounded-xl text-xs font-bold transition shadow-xs"
+                className="px-4 py-2 bg-[var(--accent)] hover:brightness-110 text-white rounded-full text-[12px] font-medium transition-colors cursor-pointer"
               >
-                Close Inspector
+                Close inspector
               </button>
             </div>
           </div>

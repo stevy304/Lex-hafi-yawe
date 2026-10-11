@@ -34,6 +34,7 @@ export const FeedPage: React.FC = () => {
     bookmarkPost,
     deletePost,
     reportPost,
+    setActiveView,
   } = useApp();
 
   const [searchParams, setSearchParams] = useSearchParams();
@@ -245,7 +246,7 @@ export const FeedPage: React.FC = () => {
     <div
       ref={containerRef}
       tabIndex={-1}
-      className="relative flex-1 min-w-0 max-w-[680px] w-full border-x border-[var(--border)] bg-[var(--bg)] h-screen overflow-y-auto no-scrollbar outline-none select-text"
+      className="relative flex-1 min-w-0 max-w-[680px] w-full border-x-0 min-[960px]:border-x border-[var(--border)] bg-[var(--bg)] h-screen overflow-y-auto no-scrollbar outline-none select-text"
       style={{
         overflowAnchor: 'auto',
       }}
@@ -321,6 +322,12 @@ export const FeedPage: React.FC = () => {
               setVerifiedOnly(false);
               setMediaOnly(false);
               updateFilters(currentTab, 'All topics', false, false);
+            } else if (currentTab === 'communities') {
+              setActiveView('communities');
+            } else if (currentTab === 'official') {
+              setActiveView('news');
+            } else {
+              setActiveView('explore');
             }
           }}
         />

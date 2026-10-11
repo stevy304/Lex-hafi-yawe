@@ -1,27 +1,19 @@
 import React, { useState } from 'react';
 import {
   Newspaper,
-  Calendar,
-  Clock,
-  Award,
-  BookOpen,
   ArrowRight,
-  ExternalLink,
   X,
-  Feather,
   Plus,
-  ShieldCheck,
-  Building2,
-  CheckCircle2,
-  AlertCircle,
-  Loader2
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { LegalNewsItem } from '../../types';
 import { api } from '../../api/client';
+import { PageHeader } from '../common/PageHeader';
+import { Card } from '../common/Card';
+import { EmptyState } from '../common/EmptyState';
 
 export const LegalNewsView: React.FC = () => {
-  const { legalNews, currentUser, openLoginModal, refreshAllData } = useApp();
+  const { legalNews, currentUser, refreshAllData } = useApp();
   const [activeArticle, setActiveArticle] = useState<LegalNewsItem | null>(null);
 
   // Publish Modal State
@@ -56,7 +48,7 @@ export const LegalNewsView: React.FC = () => {
         summary: newSummary.trim(),
         fullBody: newFullBody.trim(),
         isOfficialGazetteAlert: isGazetteAlert,
-        officialSourceUrl: newSourceUrl.trim() || undefined
+        officialSourceUrl: newSourceUrl.trim() || undefined,
       });
 
       await refreshAllData();
@@ -74,358 +66,239 @@ export const LegalNewsView: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50/50">
-      {/* Header */}
-      <div className="bg-white border-b border-slate-200 px-4 sm:px-6 py-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <Newspaper className="w-5 h-5 text-blue-700" />
-              <h1 className="text-lg font-black text-slate-900">
-                Legal News & Official Gazettes
-              </h1>
-            </div>
-            <p className="text-xs text-slate-600 max-w-2xl leading-relaxed">
-              Verified regulatory developments, judicial circulars, and institutional announcements from the Ministry of Justice, Supreme Court, and Rwanda Bar Association.
-            </p>
-          </div>
-
-          {canPublish && (
+    <div className="relative flex-1 min-w-0 max-w-[680px] w-full border-x border-[var(--border)] bg-[var(--bg)] h-screen overflow-y-auto no-scrollbar outline-none select-text">
+      <PageHeader
+        title="Gazette & News"
+        subtitle="Verified regulatory developments and Official Gazette circulars"
+        actions={
+          canPublish ? (
             <button
+              type="button"
               onClick={() => setIsPublishModalOpen(true)}
-              className="px-3.5 py-2 bg-blue-700 hover:bg-blue-800 text-white rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer shadow-xs self-start sm:self-auto shrink-0"
+              className="px-3 py-1.5 bg-[var(--accent)] hover:brightness-110 text-white rounded-full text-[12px] font-medium transition-colors flex items-center gap-1.5 cursor-pointer"
             >
-              <Plus className="w-4 h-4" />
-              <span>Publish Legal Circular</span>
+              <Plus className="w-3.5 h-3.5" />
+              <span>Publish circular</span>
             </button>
-          )}
-        </div>
-      </div>
+          ) : undefined
+        }
+      />
 
-      {/* News Articles Grid */}
-      <div className="p-4 sm:p-6 space-y-4 max-w-4xl">
+      <div className="p-4 space-y-3">
         {legalNews.length === 0 ? (
-          <div className="bg-white rounded-3xl border border-slate-200/90 p-8 text-center space-y-4 shadow-xs">
-            <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-700 flex items-center justify-center mx-auto">
-              <Newspaper className="w-6 h-6" />
-            </div>
-            <div>
-              <h3 className="text-base font-extrabold text-slate-900">
-                Official Gazettes & Judicial Communiqués
-              </h3>
-              <p className="text-xs text-slate-600 max-w-md mx-auto mt-1 leading-relaxed">
-                No official circulars have been published in the repository yet. Verified government ministries, regulatory agencies, and the Rwanda Bar Association publish official regulatory updates directly to this feed.
-              </p>
-            </div>
-
-            <div className="flex flex-wrap items-center justify-center gap-2.5 pt-2">
-              <button
-                type="button"
-                onClick={() => {}}
-                className="px-3.5 py-1.5 bg-slate-50 text-slate-700 text-2xs font-semibold rounded-xl border border-slate-200"
-              >
-                Official Gazette Special Editions
-              </button>
-              <button
-                type="button"
-                onClick={() => {}}
-                className="px-3.5 py-1.5 bg-slate-50 text-slate-700 text-2xs font-semibold rounded-xl border border-slate-200"
-              >
-                Supreme Court Practice Directions
-              </button>
-              <button
-                type="button"
-                onClick={() => {}}
-                className="px-3.5 py-1.5 bg-slate-50 text-slate-700 text-2xs font-semibold rounded-xl border border-slate-200"
-              >
-                Rwanda Bar Association Bulletins
-              </button>
-            </div>
-
-            {canPublish && (
-              <div className="pt-2">
-                <button
-                  type="button"
-                  onClick={() => setIsPublishModalOpen(true)}
-                  className="px-4 py-2 bg-blue-700 hover:bg-blue-800 text-white rounded-xl text-xs font-bold transition shadow-xs cursor-pointer inline-flex items-center gap-2"
-                >
-                  <Plus className="w-4 h-4" />
-                  <span>Publish Official Circular</span>
-                </button>
-              </div>
-            )}
-          </div>
+          <EmptyState
+            icon={<Newspaper className="w-6 h-6 text-[var(--muted)]" />}
+            title="No official circulars yet"
+            description="Verified government ministries, regulatory agencies, and the Rwanda Bar Association publish official regulatory updates directly to this feed."
+          />
         ) : (
-          legalNews.map(item => (
-            <article
-              key={item.id}
-              className="bg-white border border-slate-200/90 rounded-2xl p-4 sm:p-5 hover:border-blue-300 transition shadow-xs"
-            >
+          legalNews.map((item) => (
+            <Card key={item.id}>
               <div className="flex items-center gap-2 mb-2">
-                <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded ${
-                  item.isOfficialGazetteAlert
-                    ? 'bg-amber-100 text-amber-900 border border-amber-200'
-                    : 'bg-blue-50 text-blue-800 border border-blue-200'
-                }`}>
+                <span
+                  className={`text-[11px] font-medium px-2 py-0.5 rounded ${
+                    item.isOfficialGazetteAlert
+                      ? 'bg-[var(--warn-bg)] text-[var(--warn-text)] border border-[var(--warn-border)]'
+                      : 'bg-[var(--surface)] text-[var(--gold)] border border-[var(--border)]'
+                  }`}
+                >
                   {item.category}
                 </span>
-                <span className="text-2xs text-slate-400">
-                  {new Date(item.publishedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                <span className="text-[12px] text-[var(--muted)]">
+                  {new Date(item.publishedAt).toLocaleDateString('en-GB', {
+                    day: 'numeric',
+                    month: 'short',
+                    year: 'numeric',
+                  })}
                 </span>
-                <span className="text-slate-300">•</span>
-                <span className="text-2xs text-slate-400">
+                <span className="text-[var(--border)]">•</span>
+                <span className="text-[12px] text-[var(--muted)]">
                   {item.readTimeMinutes} min read
                 </span>
               </div>
 
               <h2
-                className="text-sm font-bold text-slate-900 hover:text-blue-700 transition cursor-pointer"
+                className="text-[15px] font-semibold text-[var(--text)] hover:text-[var(--accent)] transition-colors cursor-pointer m-0"
                 onClick={() => setActiveArticle(item)}
               >
                 {item.title}
               </h2>
 
               {item.titleRw && (
-                <p className="text-2xs text-slate-500 italic mt-0.5">
+                <p className="text-[12px] text-[var(--muted)] italic mt-0.5 m-0">
                   {item.titleRw}
                 </p>
               )}
 
-              <p className="text-xs text-slate-700 leading-relaxed my-2.5">
+              <p className="text-[13px] text-[var(--muted)] leading-relaxed my-2.5">
                 {item.summary}
               </p>
 
-              <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+              <div className="flex items-center justify-between pt-2 border-t border-[var(--border)]">
                 <div className="flex items-center gap-2">
-                  <span className="w-5 h-5 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-[10px]">
+                  <span className="w-5 h-5 rounded-full bg-[var(--surface)] border border-[var(--border)] text-[var(--text)] flex items-center justify-center font-bold text-[10px]">
                     LX
                   </span>
-                  <span className="text-2xs font-semibold text-slate-700">
+                  <span className="text-[12px] font-medium text-[var(--text)]">
                     {item.publisherName}
                   </span>
                 </div>
 
                 <button
+                  type="button"
                   onClick={() => setActiveArticle(item)}
-                  className="text-xs font-bold text-blue-700 hover:text-blue-900 flex items-center gap-1 cursor-pointer"
+                  className="text-[12px] font-medium text-[var(--accent)] hover:underline flex items-center gap-1 cursor-pointer"
                 >
-                  <span>Read Full Circular</span>
+                  <span>Read circular</span>
                   <ArrowRight className="w-3.5 h-3.5" />
                 </button>
               </div>
-            </article>
+            </Card>
           ))
         )}
       </div>
 
-      {/* Article Modal */}
+      {/* Article Detail Modal */}
       {activeArticle && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/60 backdrop-blur-xs">
-          <div className="relative w-full max-w-2xl bg-white rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
-            <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs">
+          <div className="relative w-full max-w-2xl bg-[var(--surface)] border border-[var(--border)] rounded-[12px] shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
+            <div className="px-5 py-4 border-b border-[var(--border)] flex items-center justify-between bg-[var(--bg)]">
               <div className="flex items-center gap-2">
-                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-blue-100 text-blue-800">
+                <span className="text-[11px] font-medium px-2 py-0.5 rounded bg-[var(--surface)] text-[var(--gold)] border border-[var(--border)]">
                   {activeArticle.category}
                 </span>
                 {activeArticle.isOfficialGazetteAlert && (
-                  <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-amber-100 text-amber-900">
-                    Official Gazette Notice
+                  <span className="text-[11px] font-medium px-2 py-0.5 rounded bg-[var(--warn-bg)] text-[var(--warn-text)] border border-[var(--warn-border)]">
+                    Official Gazette notice
                   </span>
                 )}
               </div>
               <button
+                type="button"
                 onClick={() => setActiveArticle(null)}
-                className="p-1 text-slate-400 hover:text-slate-600 rounded-lg"
+                className="p-1 text-[var(--muted)] hover:text-[var(--text)] cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="p-5 sm:p-6 overflow-y-auto space-y-4">
+            <div className="p-5 sm:p-6 overflow-y-auto space-y-4 text-[13px] no-scrollbar">
               <div>
-                <h1 className="text-base sm:text-lg font-black text-slate-900 leading-snug">
+                <h1 className="text-[18px] font-semibold text-[var(--text)] leading-snug m-0">
                   {activeArticle.title}
                 </h1>
                 {activeArticle.titleRw && (
-                  <p className="text-xs text-slate-500 italic mt-1">
+                  <p className="text-[12px] text-[var(--muted)] italic mt-1 m-0">
                     {activeArticle.titleRw}
                   </p>
                 )}
-                <div className="flex items-center gap-3 text-2xs text-slate-500 mt-2">
-                  <span>Published by <strong>{activeArticle.publisherName}</strong></span>
+                <div className="flex items-center gap-2 text-[12px] text-[var(--muted)] mt-2">
+                  <span>{activeArticle.publisherName}</span>
                   <span>•</span>
-                  <span>{new Date(activeArticle.publishedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
+                  <span>
+                    {new Date(activeArticle.publishedAt).toLocaleDateString('en-GB', {
+                      day: 'numeric',
+                      month: 'long',
+                      year: 'numeric',
+                    })}
+                  </span>
                 </div>
               </div>
 
-              <div className="p-3.5 bg-blue-50/70 border border-blue-100 rounded-xl text-xs text-blue-950 leading-relaxed font-medium">
-                {activeArticle.summary}
-              </div>
-
-              <div className="text-xs text-slate-800 leading-relaxed space-y-3 whitespace-pre-line">
-                {activeArticle.fullBody}
-              </div>
-
-              {activeArticle.officialSourceUrl && (
-                <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
-                  <span className="text-2xs text-slate-500">Official Institutional Repository</span>
-                  <a
-                    href={activeArticle.officialSourceUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-xs font-bold text-blue-700 hover:underline flex items-center gap-1"
-                  >
-                    <span>Download PDF / View Gazette</span>
-                    <ExternalLink className="w-3.5 h-3.5" />
-                  </a>
+              <div className="bg-[var(--bg)] border border-[var(--border)] rounded-[10px] p-4 text-[13px] text-[var(--text)] leading-relaxed space-y-3">
+                <p className="font-medium text-[var(--gold)] m-0">
+                  Official circular summary:
+                </p>
+                <p className="m-0 text-[var(--muted)]">{activeArticle.summary}</p>
+                <div className="pt-2 border-t border-[var(--border)] whitespace-pre-line text-[var(--text)]">
+                  {activeArticle.fullBody}
                 </div>
-              )}
+              </div>
+            </div>
+
+            <div className="p-4 border-t border-[var(--border)] bg-[var(--bg)] flex items-center justify-end">
+              <button
+                type="button"
+                onClick={() => setActiveArticle(null)}
+                className="px-4 py-1.5 bg-[var(--accent)] hover:brightness-110 text-white rounded-full text-[12px] font-medium cursor-pointer"
+              >
+                Close
+              </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Publish Circular Modal */}
+      {/* Publish Modal */}
       {isPublishModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/65 backdrop-blur-xs">
-          <div className="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-            <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between bg-gradient-to-r from-[#102744] to-[#1D4ED8] text-white">
-              <div className="flex items-center gap-2">
-                <Building2 className="w-4 h-4 text-amber-300" />
-                <h3 className="text-sm font-bold">Publish Official Legal Notice</h3>
-              </div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+          <div className="bg-[var(--surface)] border border-[var(--border)] rounded-[12px] p-5 w-full max-w-md shadow-2xl space-y-3.5">
+            <div className="flex items-center justify-between">
+              <h3 className="text-[16px] font-semibold text-[var(--text)] m-0">Publish official legal circular</h3>
               <button
+                type="button"
                 onClick={() => setIsPublishModalOpen(false)}
-                className="text-white/70 hover:text-white"
+                className="p-1 text-[var(--muted)] hover:text-[var(--text)] cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handlePublishSubmit} className="p-5 overflow-y-auto space-y-3">
-              {publishError && (
-                <div className="p-2.5 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 flex items-start gap-2">
-                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-red-600" />
-                  <span>{publishError}</span>
-                </div>
-              )}
+            {publishError && (
+              <p className="text-[12px] text-[var(--danger)] m-0">{publishError}</p>
+            )}
 
+            <form onSubmit={handlePublishSubmit} className="space-y-3">
               <div>
-                <label className="text-xs font-bold text-slate-800 block mb-1">
-                  Notice Category
-                </label>
-                <select
-                  value={newCategory}
-                  onChange={e => setNewCategory(e.target.value as any)}
-                  className="w-full text-xs border border-slate-300 rounded-xl px-3 py-2 bg-slate-50 focus:bg-white"
-                >
-                  <option value="Ministry Communiqué">Ministry Communiqué</option>
-                  <option value="Judiciary Circular">Judiciary Circular</option>
-                  <option value="Regulatory Update">Regulatory Update</option>
-                  <option value="Bar Association">Bar Association Announcement</option>
-                  <option value="Public Legal Education">Public Legal Education</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="text-xs font-bold text-slate-800 block mb-1">
-                  Title (English / Official)
-                </label>
+                <label className="text-[12px] font-medium text-[var(--muted)] block mb-1">Title (English)</label>
                 <input
                   type="text"
                   required
                   value={newTitle}
-                  onChange={e => setNewTitle(e.target.value)}
-                  placeholder="e.g. Directive on Electronic Notarization Standards 2026"
-                  className="w-full text-xs border border-slate-300 rounded-xl px-3 py-2 bg-slate-50 focus:bg-white"
+                  onChange={(e) => setNewTitle(e.target.value)}
+                  placeholder="Official Ministerial Announcement..."
+                  className="w-full text-[13px] bg-[var(--bg)] text-[var(--text)] border border-[var(--border)] rounded-[8px] p-2 focus:border-[var(--accent)] focus:outline-none"
                 />
               </div>
 
               <div>
-                <label className="text-xs font-bold text-slate-800 block mb-1">
-                  Title in Ikinyarwanda (Optional)
-                </label>
-                <input
-                  type="text"
-                  value={newTitleRw}
-                  onChange={e => setNewTitleRw(e.target.value)}
-                  placeholder="e.g. Amabwiriza agenga ihererekanyabubasha..."
-                  className="w-full text-xs border border-slate-300 rounded-xl px-3 py-2 bg-slate-50 focus:bg-white"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-bold text-slate-800 block mb-1">
-                  Executive Summary
-                </label>
+                <label className="text-[12px] font-medium text-[var(--muted)] block mb-1">Summary</label>
                 <textarea
-                  required
                   rows={2}
-                  value={newSummary}
-                  onChange={e => setNewSummary(e.target.value)}
-                  placeholder="Concise 1-2 sentence overview for the legal community."
-                  className="w-full text-xs border border-slate-300 rounded-xl p-2.5 bg-slate-50 focus:bg-white resize-none"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-bold text-slate-800 block mb-1">
-                  Full Circular Text & Legal Provisions
-                </label>
-                <textarea
                   required
-                  rows={4}
-                  value={newFullBody}
-                  onChange={e => setNewFullBody(e.target.value)}
-                  placeholder="Detailed provisions, statutory citations, and operational guidelines..."
-                  className="w-full text-xs border border-slate-300 rounded-xl p-2.5 bg-slate-50 focus:bg-white"
+                  value={newSummary}
+                  onChange={(e) => setNewSummary(e.target.value)}
+                  placeholder="Brief 2-3 sentence overview..."
+                  className="w-full text-[13px] bg-[var(--bg)] text-[var(--text)] border border-[var(--border)] rounded-[8px] p-2 focus:border-[var(--accent)] focus:outline-none resize-none"
                 />
               </div>
 
               <div>
-                <label className="text-xs font-bold text-slate-800 block mb-1">
-                  Official Gazette / Portal PDF URL
-                </label>
-                <input
-                  type="text"
-                  value={newSourceUrl}
-                  onChange={e => setNewSourceUrl(e.target.value)}
-                  placeholder="https://minijust.gov.rw/gazette/..."
-                  className="w-full text-xs border border-slate-300 rounded-xl px-3 py-2 bg-slate-50 focus:bg-white"
+                <label className="text-[12px] font-medium text-[var(--muted)] block mb-1">Full bulletin text</label>
+                <textarea
+                  rows={4}
+                  required
+                  value={newFullBody}
+                  onChange={(e) => setNewFullBody(e.target.value)}
+                  placeholder="Official communique details..."
+                  className="w-full text-[13px] bg-[var(--bg)] text-[var(--text)] border border-[var(--border)] rounded-[8px] p-2 focus:border-[var(--accent)] focus:outline-none resize-none"
                 />
               </div>
 
-              <div className="flex items-center gap-2 pt-1">
-                <input
-                  type="checkbox"
-                  id="gazette-alert"
-                  checked={isGazetteAlert}
-                  onChange={e => setIsGazetteAlert(e.target.checked)}
-                  className="w-3.5 h-3.5 rounded text-blue-700"
-                />
-                <label htmlFor="gazette-alert" className="text-xs text-slate-700 font-medium">
-                  Flag as Urgent Official Gazette Alert
-                </label>
-              </div>
-
-              <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
+              <div className="flex justify-end gap-2 pt-2 border-t border-[var(--border)]">
                 <button
                   type="button"
                   onClick={() => setIsPublishModalOpen(false)}
-                  className="px-3.5 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl"
+                  className="px-4 py-2 rounded-full border border-[var(--border)] text-[var(--text)] hover:bg-[var(--hover)] text-[13px] font-medium transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="px-4 py-2 bg-blue-700 hover:bg-blue-800 disabled:bg-blue-400 text-white rounded-xl text-xs font-bold flex items-center gap-1.5"
+                  className="px-4 py-2 rounded-full bg-[var(--accent)] hover:brightness-110 text-white text-[13px] font-medium transition-colors cursor-pointer"
                 >
-                  {isSubmitting ? (
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  ) : (
-                    <span>Publish to Lex Hafi Platform</span>
-                  )}
+                  {isSubmitting ? 'Publishing...' : 'Publish'}
                 </button>
               </div>
             </form>

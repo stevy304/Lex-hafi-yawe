@@ -5,18 +5,14 @@ import {
   MapPin,
   Video,
   Phone,
-  CheckCircle,
-  XCircle,
-  AlertCircle,
   MessageSquare,
-  ShieldCheck,
-  UserCheck,
-  LogIn,
-  RotateCcw
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { UserAvatar } from '../common/UserAvatar';
 import { VerificationBadge } from '../common/VerificationBadge';
+import { PageHeader } from '../common/PageHeader';
+import { Card } from '../common/Card';
+import { EmptyState } from '../common/EmptyState';
 
 export const AppointmentsView: React.FC = () => {
   const {
@@ -26,7 +22,7 @@ export const AppointmentsView: React.FC = () => {
     users,
     startOrGetConversationWithUser,
     setActiveView,
-    openLoginModal
+    openLoginModal,
   } = useApp();
 
   const [filter, setFilter] = useState<'all' | 'upcoming' | 'completed'>('all');
@@ -34,35 +30,25 @@ export const AppointmentsView: React.FC = () => {
 
   if (!currentUser) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center p-8 text-center">
-        <div>
-          <div className="w-12 h-12 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center mx-auto mb-3">
-            <Calendar className="w-6 h-6" />
-          </div>
-          <h2 className="text-base font-bold text-slate-900 mb-1">
-            Legal Consultations & Appointments
-          </h2>
-          <p className="text-xs text-slate-500 max-w-sm mb-4">
-            Sign in to view your scheduled advocate appointments, join video consultation rooms, or review past legal briefs.
-          </p>
-          <button
-            onClick={openLoginModal}
-            className="px-5 py-2.5 bg-blue-700 text-white font-bold text-xs rounded-xl hover:bg-blue-800 transition flex items-center gap-2 mx-auto cursor-pointer"
-          >
-            <LogIn className="w-4 h-4" />
-            <span>Sign In to View Schedule</span>
-          </button>
-        </div>
+      <div className="relative flex-1 min-w-0 max-w-[680px] w-full border-x border-[var(--border)] bg-[var(--bg)] h-screen overflow-y-auto no-scrollbar outline-none select-text flex items-center justify-center">
+        <EmptyState
+          icon={<Calendar className="w-6 h-6 text-[var(--accent)]" />}
+          title="Legal consultations and appointments"
+          description="Sign in to view your scheduled advocate appointments, join video consultation rooms, or review past legal briefs."
+          action={{
+            label: 'Sign in to view schedule',
+            onClick: openLoginModal,
+          }}
+        />
       </div>
     );
   }
 
-  // Filter appointments involving currentUser
   const myAppointments = appointments.filter(
-    apt => apt.clientId === currentUser.id || apt.advocateId === currentUser.id
+    (apt) => apt.clientId === currentUser.id || apt.advocateId === currentUser.id
   );
 
-  const filteredAppointments = myAppointments.filter(apt => {
+  const filteredAppointments = myAppointments.filter((apt) => {
     if (filter === 'upcoming') return apt.status === 'confirmed' || apt.status === 'pending';
     if (filter === 'completed') return apt.status === 'completed' || apt.status === 'cancelled';
     return true;
@@ -76,138 +62,107 @@ export const AppointmentsView: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50/50">
-      {/* Header */}
-      <div className="bg-white border-b border-slate-200 px-4 sm:px-6 py-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <Calendar className="w-5 h-5 text-blue-700" />
-            <h1 className="text-lg font-black text-slate-900">
-              Legal Consultations & Appointments
-            </h1>
-          </div>
-
-          <div className="flex gap-1.5 text-xs font-semibold">
-            <button
-              onClick={() => setFilter('all')}
-              className={`px-3 py-1 rounded-lg transition ${
-                filter === 'all'
-                  ? 'bg-blue-700 text-white'
-                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-              }`}
-            >
-              All ({myAppointments.length})
-            </button>
-            <button
-              onClick={() => setFilter('upcoming')}
-              className={`px-3 py-1 rounded-lg transition ${
-                filter === 'upcoming'
-                  ? 'bg-blue-700 text-white'
-                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-              }`}
-            >
-              Upcoming
-            </button>
-            <button
-              onClick={() => setFilter('completed')}
-              className={`px-3 py-1 rounded-lg transition ${
-                filter === 'completed'
-                  ? 'bg-blue-700 text-white'
-                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-              }`}
-            >
-              Completed
-            </button>
-          </div>
+    <div className="relative flex-1 min-w-0 max-w-[680px] w-full border-x border-[var(--border)] bg-[var(--bg)] h-screen overflow-y-auto no-scrollbar outline-none select-text">
+      <PageHeader
+        title="Appointments"
+        subtitle="Manage scheduled legal consultations and client advisory meetings"
+      >
+        <div className="flex gap-1.5 overflow-x-auto no-scrollbar pt-1 text-[13px] font-medium">
+          <button
+            type="button"
+            onClick={() => setFilter('all')}
+            className={`px-3 py-1 rounded-full transition-colors whitespace-nowrap cursor-pointer ${
+              filter === 'all'
+                ? 'bg-[var(--accent)] text-white'
+                : 'bg-[var(--surface)] text-[var(--muted)] hover:text-[var(--text)] border border-[var(--border)]'
+            }`}
+          >
+            All ({myAppointments.length})
+          </button>
+          <button
+            type="button"
+            onClick={() => setFilter('upcoming')}
+            className={`px-3 py-1 rounded-full transition-colors whitespace-nowrap cursor-pointer ${
+              filter === 'upcoming'
+                ? 'bg-[var(--accent)] text-white'
+                : 'bg-[var(--surface)] text-[var(--muted)] hover:text-[var(--text)] border border-[var(--border)]'
+            }`}
+          >
+            Upcoming
+          </button>
+          <button
+            type="button"
+            onClick={() => setFilter('completed')}
+            className={`px-3 py-1 rounded-full transition-colors whitespace-nowrap cursor-pointer ${
+              filter === 'completed'
+                ? 'bg-[var(--accent)] text-white'
+                : 'bg-[var(--surface)] text-[var(--muted)] hover:text-[var(--text)] border border-[var(--border)]'
+            }`}
+          >
+            Completed
+          </button>
         </div>
+      </PageHeader>
 
-        <p className="text-xs text-slate-600 max-w-2xl leading-relaxed mt-1">
-          Manage your scheduled client-advocate advisory meetings, format arrangements, and privileged consultations in Rwanda.
-        </p>
-      </div>
-
-      {/* Appointments Stream */}
-      <div className="p-4 sm:p-6 space-y-4 max-w-4xl">
+      <div className="p-4 space-y-3">
         {filteredAppointments.length === 0 ? (
-          <div className="bg-white rounded-3xl border border-slate-200/90 p-8 text-center space-y-4 shadow-xs">
-            <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-700 flex items-center justify-center mx-auto">
-              <Calendar className="w-6 h-6" />
-            </div>
-            <div>
-              <h3 className="text-base font-extrabold text-slate-900">
-                No Scheduled Consultations
-              </h3>
-              <p className="text-xs text-slate-600 max-w-md mx-auto mt-1 leading-relaxed">
-                You do not have any pending or completed legal advisory meetings. When you schedule an appointment with a verified advocate, meeting credentials and details will appear here.
-              </p>
-            </div>
-
-            <div className="flex flex-wrap items-center justify-center gap-2.5 pt-2">
-              <button
-                type="button"
-                onClick={() => setActiveView('services')}
-                className="px-4 py-2 bg-blue-700 hover:bg-blue-800 text-white text-xs font-bold rounded-xl transition shadow-xs cursor-pointer"
-              >
-                Find an Advocate in Marketplace
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveView('legalaid')}
-                className="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold rounded-xl transition shadow-xs cursor-pointer"
-              >
-                Access Free MAJ Assistance
-              </button>
-            </div>
-          </div>
+          <EmptyState
+            icon={<Calendar className="w-6 h-6 text-[var(--muted)]" />}
+            title="No scheduled consultations"
+            description="When you schedule an appointment with a verified advocate, meeting credentials and details will appear here."
+            action={{
+              label: 'Browse marketplace',
+              onClick: () => setActiveView('services'),
+            }}
+          />
         ) : (
-          filteredAppointments.map(apt => {
-            const client = users.find(u => u.id === apt.clientId);
-            const advocate = users.find(u => u.id === apt.advocateId);
+          filteredAppointments.map((apt) => {
+            const client = users.find((u) => u.id === apt.clientId);
+            const advocate = users.find((u) => u.id === apt.advocateId);
             const partner = isAdvocate ? client : advocate;
 
             return (
-              <div
-                key={apt.id}
-                className="bg-white border border-slate-200/90 rounded-2xl p-4 sm:p-5 shadow-xs space-y-3"
-              >
-                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2">
+              <Card key={apt.id}>
+                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2 mb-2">
                   <div>
-                    <span className={`text-[10px] font-extrabold uppercase tracking-wider px-2.5 py-0.5 rounded-full ${
-                      apt.status === 'confirmed'
-                        ? 'bg-emerald-100 text-emerald-800'
-                        : apt.status === 'completed'
-                        ? 'bg-blue-100 text-blue-800'
-                        : apt.status === 'cancelled'
-                        ? 'bg-red-100 text-red-800'
-                        : 'bg-slate-100 text-slate-700'
-                    }`}>
-                      ● {apt.status.toUpperCase()}
+                    <span
+                      className={`text-[11px] font-medium uppercase tracking-wider px-2 py-0.5 rounded ${
+                        apt.status === 'confirmed'
+                          ? 'bg-[var(--ok-bg)] text-[var(--ok-text)]'
+                          : apt.status === 'completed'
+                          ? 'bg-[var(--surface)] text-[var(--gold)] border border-[var(--border)]'
+                          : apt.status === 'cancelled'
+                          ? 'bg-[var(--danger)]/15 text-[var(--danger)]'
+                          : 'bg-[var(--surface)] text-[var(--muted)] border border-[var(--border)]'
+                      }`}
+                    >
+                      ● {apt.status}
                     </span>
-                    <h3 className="text-sm font-bold text-slate-900 mt-1">
+                    <h3 className="text-[15px] font-semibold text-[var(--text)] mt-1.5 m-0">
                       {apt.serviceTitle}
                     </h3>
                   </div>
 
                   <div className="text-left sm:text-right">
-                    <span className="text-sm font-black text-blue-700">
+                    <span className="text-[15px] font-semibold text-[var(--accent)] block">
                       {apt.feeRWF.toLocaleString()} RWF
                     </span>
-                    <span className="text-[10px] text-slate-400 block">
-                      Consultation Honorarium
+                    <span className="text-[11px] text-[var(--muted)] block">
+                      Consultation honorarium
                     </span>
                   </div>
                 </div>
 
                 {/* Partner info */}
                 {partner && (
-                  <div className="flex items-center gap-2.5 bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                  <div className="flex items-center gap-2.5 bg-[var(--bg)] p-2.5 rounded-[10px] border border-[var(--border)] my-2">
                     <UserAvatar user={partner} size="sm" />
-                    <div>
+                    <div className="min-w-0">
                       <div className="flex items-center gap-1">
-                        <span className="text-xs font-bold text-slate-900">{partner.name}</span>
+                        <span className="text-[13px] font-medium text-[var(--text)] truncate">{partner.name}</span>
                         <VerificationBadge user={partner} size="sm" />
                       </div>
-                      <span className="text-2xs text-slate-500">
+                      <span className="text-[11px] text-[var(--muted)] block truncate">
                         {isAdvocate ? 'Client' : `Advocate • ${partner.barRollNumber || 'RBA'}`}
                       </span>
                     </div>
@@ -215,76 +170,80 @@ export const AppointmentsView: React.FC = () => {
                 )}
 
                 {/* Time, Format & Location */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-2xs text-slate-600 bg-slate-50/70 p-2.5 rounded-xl">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-[12px] text-[var(--muted)] bg-[var(--bg)] p-2.5 rounded-[10px] border border-[var(--border)] mb-2">
                   <div className="flex items-center gap-1.5">
-                    <Calendar className="w-3.5 h-3.5 text-blue-600" />
-                    <span>Date: <strong>{apt.date}</strong></span>
+                    <Calendar className="w-3.5 h-3.5 text-[var(--accent)]" />
+                    <span>Date: <strong className="text-[var(--text)]">{apt.date}</strong></span>
                   </div>
                   <div className="flex items-center gap-1.5">
-                    <Clock className="w-3.5 h-3.5 text-blue-600" />
-                    <span>Time: <strong>{apt.timeSlot}</strong></span>
+                    <Clock className="w-3.5 h-3.5 text-[var(--accent)]" />
+                    <span>Time: <strong className="text-[var(--text)]">{apt.timeSlot}</strong></span>
                   </div>
                   <div className="flex items-center gap-1.5">
                     {apt.format === 'in_person' ? (
-                      <MapPin className="w-3.5 h-3.5 text-blue-600" />
+                      <MapPin className="w-3.5 h-3.5 text-[var(--accent)]" />
                     ) : apt.format === 'video' ? (
-                      <Video className="w-3.5 h-3.5 text-blue-600" />
+                      <Video className="w-3.5 h-3.5 text-[var(--accent)]" />
                     ) : (
-                      <Phone className="w-3.5 h-3.5 text-blue-600" />
+                      <Phone className="w-3.5 h-3.5 text-[var(--accent)]" />
                     )}
                     <span className="capitalize">
-                      Format: <strong>{apt.format.replace('_', ' ')}</strong>
+                      Format: <strong className="text-[var(--text)]">{apt.format.replace('_', ' ')}</strong>
                     </span>
                   </div>
                 </div>
 
                 {/* Notes */}
                 {apt.clientNotes && (
-                  <div className="text-2xs text-slate-700 border-l-2 border-blue-600 pl-2 py-0.5">
-                    <strong>Client Instructions:</strong> {apt.clientNotes}
+                  <div className="text-[12px] text-[var(--muted)] border-l-2 border-[var(--accent)] pl-2 py-0.5 my-2">
+                    <strong>Client instructions:</strong> {apt.clientNotes}
                   </div>
                 )}
 
                 {/* Actions */}
-                <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-100">
+                <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-[var(--border)]">
                   <button
+                    type="button"
                     onClick={() => handleMessage(isAdvocate ? apt.clientId : apt.advocateId)}
-                    className="px-3 py-1.5 border border-slate-300 hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-semibold flex items-center gap-1.5"
+                    className="px-3.5 py-1.5 border border-[var(--border)] hover:bg-[var(--hover)] text-[var(--text)] rounded-full text-[12px] font-medium transition-colors flex items-center gap-1.5 cursor-pointer"
                   >
                     <MessageSquare className="w-3.5 h-3.5" />
-                    <span>Message {isAdvocate ? 'Client' : 'Advocate'}</span>
+                    <span>Message {isAdvocate ? 'client' : 'advocate'}</span>
                   </button>
 
                   <div className="flex items-center gap-2">
                     {apt.format === 'video' && apt.status === 'confirmed' && (
                       <button
+                        type="button"
                         onClick={() => setActiveCallModal(apt.id)}
-                        className="px-3.5 py-1.5 bg-blue-700 hover:bg-blue-800 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs"
+                        className="px-3.5 py-1.5 bg-[var(--accent)] hover:brightness-110 text-white rounded-full text-[12px] font-medium flex items-center gap-1.5 cursor-pointer"
                       >
                         <Video className="w-3.5 h-3.5" />
-                        <span>Join Secure Room</span>
+                        <span>Join consultation room</span>
                       </button>
                     )}
 
                     {apt.status === 'confirmed' && (
                       <>
                         <button
+                          type="button"
                           onClick={() => updateAppointmentStatus(apt.id, 'cancelled', 'Cancelled by user request.')}
-                          className="px-3 py-1.5 text-xs text-red-600 hover:bg-red-50 rounded-xl font-bold cursor-pointer"
+                          className="px-3.5 py-1.5 text-[12px] text-[var(--danger)] hover:bg-[var(--hover)] rounded-full font-medium cursor-pointer"
                         >
                           Cancel
                         </button>
                         <button
+                          type="button"
                           onClick={() => updateAppointmentStatus(apt.id, 'completed', 'Consultation finished.')}
-                          className="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-bold cursor-pointer"
+                          className="px-3.5 py-1.5 bg-[var(--ok-bg)] text-[var(--ok-text)] hover:opacity-90 rounded-full text-[12px] font-medium cursor-pointer"
                         >
-                          Mark Completed
+                          Mark completed
                         </button>
                       </>
                     )}
                   </div>
                 </div>
-              </div>
+              </Card>
             );
           })
         )}
@@ -292,23 +251,24 @@ export const AppointmentsView: React.FC = () => {
 
       {/* Video Call Modal Simulation */}
       {activeCallModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
-          <div className="bg-slate-900 border border-slate-700 rounded-2xl p-6 w-full max-w-lg text-white text-center space-y-4">
-            <div className="w-16 h-16 rounded-full bg-blue-600 flex items-center justify-center mx-auto text-white animate-pulse">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <div className="bg-[var(--surface)] border border-[var(--border)] rounded-[12px] p-6 w-full max-w-lg text-[var(--text)] text-center space-y-4">
+            <div className="w-16 h-16 rounded-full bg-[var(--accent)]/20 text-[var(--accent)] flex items-center justify-center mx-auto animate-pulse">
               <Video className="w-8 h-8" />
             </div>
-            <h3 className="text-base font-bold">
-              Lex Hafi Yawe Encrypted Video Consultation
+            <h3 className="text-[18px] font-semibold m-0">
+              Lex Hafi Yawe consultation room
             </h3>
-            <p className="text-xs text-slate-400">
-              Encrypted peer connection established with client & advocate. Privileged attorney-client session in progress.
+            <p className="text-[13px] text-[var(--muted)] m-0 leading-normal">
+              Encrypted connection established with client and advocate. Privileged attorney-client session in progress.
             </p>
             <div className="flex justify-center gap-3 pt-2">
               <button
+                type="button"
                 onClick={() => setActiveCallModal(null)}
-                className="px-6 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold"
+                className="px-6 py-2 bg-[var(--danger)] hover:opacity-90 text-white rounded-full text-[13px] font-medium cursor-pointer"
               >
-                End Call
+                End call
               </button>
             </div>
           </div>

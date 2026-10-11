@@ -51,6 +51,7 @@ export const StoriesRow: React.FC<StoriesRowProps> = ({
 
   return (
     <div
+      data-testid="story-row"
       style={{ height }}
       className="w-full border-b border-[var(--border)] px-4 flex items-center overflow-x-auto no-scrollbar transition-all duration-200"
     >
@@ -66,7 +67,7 @@ export const StoriesRow: React.FC<StoriesRowProps> = ({
               <img
                 src={currentUser.avatar}
                 alt={currentUser.name}
-                className="w-[42px] h-[42px] rounded-full object-cover"
+                className="w-[44px] h-[44px] rounded-full object-cover"
               />
             ) : (
               <span className="font-semibold text-xs text-[var(--muted)]">

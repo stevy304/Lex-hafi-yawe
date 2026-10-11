@@ -59,3 +59,27 @@ All 12 acceptance tests pass against the mock adapter:
 10. **PASS** — Keyboard navigation operates smoothly with logical tab order, Enter key submission, Esc key to go Back, automatic focus on step changes, and accessible `role="alert"` error announcements.
 11. **PASS** — Network failures trigger `errNet` and re-enable form controls cleanly.
 12. **PASS** — Zero credentials or session tokens are stored in web storage; no secrets in frontend code; zero `console.log` statements with sensitive data.
+
+---
+
+## Quick Start & Verification
+
+### Development Server
+```bash
+npm run dev
+# Starts fullstack server on http://localhost:3000 (0.0.0.0:3000)
+```
+
+### Run Unit Tests
+```bash
+npm test
+# Executes all unit tests with Node test runner
+```
+
+### Full Verification
+```bash
+npm run verify
+# Runs typecheck (tsc --noEmit), tests, and production build
+```
+
+For complete documentation on feed scrolling, keyboard shortcuts, and post variants, see [`docs/FEED_UX.md`](./docs/FEED_UX.md).

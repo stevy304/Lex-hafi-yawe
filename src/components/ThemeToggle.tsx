@@ -1,10 +1,13 @@
 import React from 'react';
+import { useTheme } from '../hooks/useTheme';
 
 interface ThemeToggleProps {
-  onToggle: () => void;
+  onToggle?: () => void;
 }
 
-export const ThemeToggle: React.FC<ThemeToggleProps> = ({ onToggle }) => {
+export const ThemeToggle: React.FC<ThemeToggleProps> = ({ onToggle: propOnToggle }) => {
+  const { toggleTheme } = useTheme();
+  const onToggle = propOnToggle ?? toggleTheme;
   return (
     <button
       type="button"

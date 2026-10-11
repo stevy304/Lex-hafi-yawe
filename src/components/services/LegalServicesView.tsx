@@ -2,20 +2,21 @@ import React, { useState } from 'react';
 import {
   Briefcase,
   Search,
-  Filter,
-  MapPin,
   Star,
   Clock,
-  ShieldCheck,
   Calendar,
   MessageSquare,
-  FileCheck
+  FileCheck,
+  MapPin,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { LegalService } from '../../types';
 import { UserAvatar } from '../common/UserAvatar';
 import { VerificationBadge } from '../common/VerificationBadge';
 import { ServiceBookingModal } from './ServiceBookingModal';
+import { PageHeader } from '../common/PageHeader';
+import { Card } from '../common/Card';
+import { EmptyState } from '../common/EmptyState';
 
 export const LegalServicesView: React.FC = () => {
   const {
@@ -25,7 +26,7 @@ export const LegalServicesView: React.FC = () => {
     navigateToProfile,
     startOrGetConversationWithUser,
     openLoginModal,
-    setActiveView
+    setActiveView,
   } = useApp();
 
   const [selectedPracticeArea, setSelectedPracticeArea] = useState<string>('All');
@@ -38,7 +39,7 @@ export const LegalServicesView: React.FC = () => {
     'Land & Property Conveyancing',
     'Commercial Law',
     'Labor Disputes',
-    'Criminal Defense'
+    'Criminal Defense',
   ];
 
   const provinces = [
@@ -47,12 +48,16 @@ export const LegalServicesView: React.FC = () => {
     'Northern Province',
     'Southern Province',
     'Eastern Province',
-    'Nationwide'
+    'Nationwide',
   ];
 
-  const filteredServices = legalServices.filter(s => {
-    const matchesArea = selectedPracticeArea === 'All' || s.practiceArea === selectedPracticeArea;
-    const matchesProvince = selectedProvince === 'All' || s.locationProvince === selectedProvince || s.locationProvince === 'Nationwide';
+  const filteredServices = legalServices.filter((s) => {
+    const matchesArea =
+      selectedPracticeArea === 'All' || s.practiceArea === selectedPracticeArea;
+    const matchesProvince =
+      selectedProvince === 'All' ||
+      s.locationProvince === selectedProvince ||
+      s.locationProvince === 'Nationwide';
     const matchesSearch =
       s.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       s.description.toLowerCase().includes(searchQuery.toLowerCase());
@@ -69,41 +74,32 @@ export const LegalServicesView: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50/50">
-      {/* Top Header */}
-      <div className="bg-white border-b border-slate-200 px-4 sm:px-6 py-4">
-        <div className="flex items-center gap-2 mb-1">
-          <Briefcase className="w-5 h-5 text-blue-700" />
-          <h1 className="text-lg font-black text-slate-900">
-            Legal Services Marketplace
-          </h1>
-        </div>
-        <p className="text-xs text-slate-600 max-w-2xl leading-relaxed">
-          Book verified advocates licensed by the Rwanda Bar Association. All services feature transparent pricing in Rwandan Francs (RWF) and protected advocate-client confidentiality.
-        </p>
-
-        {/* Filters Row */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 mt-4">
+    <div className="relative flex-1 min-w-0 max-w-[680px] w-full border-x border-[var(--border)] bg-[var(--bg)] h-screen overflow-y-auto no-scrollbar outline-none select-text">
+      <PageHeader
+        title="Legal Services"
+        subtitle="Book verified advocates licensed by the Rwanda Bar Association"
+      >
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
           <div className="relative">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <Search className="w-4 h-4 text-[var(--muted)] absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              placeholder="Search legal services or issues..."
-              className="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-600 focus:bg-white"
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search services..."
+              className="w-full text-[13px] bg-[var(--surface)] text-[var(--text)] placeholder:text-[var(--muted)] border border-[var(--border)] rounded-full pl-9 pr-3 py-1.5 focus:outline-none focus:border-[var(--accent)]"
             />
           </div>
 
           <div>
             <select
               value={selectedPracticeArea}
-              onChange={e => setSelectedPracticeArea(e.target.value)}
-              className="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-600"
+              onChange={(e) => setSelectedPracticeArea(e.target.value)}
+              className="w-full text-[13px] bg-[var(--surface)] text-[var(--text)] border border-[var(--border)] rounded-full px-3 py-1.5 focus:outline-none focus:border-[var(--accent)] cursor-pointer"
             >
-              {practiceAreas.map(area => (
+              {practiceAreas.map((area) => (
                 <option key={area} value={area}>
-                  {area === 'All' ? 'All Practice Areas' : area}
+                  {area === 'All' ? 'All practice areas' : area}
                 </option>
               ))}
             </select>
@@ -112,117 +108,66 @@ export const LegalServicesView: React.FC = () => {
           <div>
             <select
               value={selectedProvince}
-              onChange={e => setSelectedProvince(e.target.value)}
-              className="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-600"
+              onChange={(e) => setSelectedProvince(e.target.value)}
+              className="w-full text-[13px] bg-[var(--surface)] text-[var(--text)] border border-[var(--border)] rounded-full px-3 py-1.5 focus:outline-none focus:border-[var(--accent)] cursor-pointer"
             >
-              {provinces.map(prov => (
+              {provinces.map((prov) => (
                 <option key={prov} value={prov}>
-                  {prov === 'All' ? 'All Regions / Provinces' : prov}
+                  {prov === 'All' ? 'All provinces' : prov}
                 </option>
               ))}
             </select>
           </div>
         </div>
-      </div>
+      </PageHeader>
 
-      {/* Services Grid */}
-      <div className="p-4 sm:p-6 space-y-4 max-w-4xl">
-        {legalServices.length === 0 ? (
-          <div className="bg-white rounded-3xl border border-slate-200/90 p-8 text-center space-y-4 shadow-xs">
-            <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-700 flex items-center justify-center mx-auto">
-              <Briefcase className="w-6 h-6" />
-            </div>
-            <div>
-              <h3 className="text-base font-extrabold text-slate-900">
-                Legal Practice Marketplace
-              </h3>
-              <p className="text-xs text-slate-600 max-w-md mx-auto mt-1 leading-relaxed">
-                No private advocate retainers have been listed yet. Licensed members of the Rwanda Bar Association can publish their practice areas, fixed consultation fees, and advisory offerings.
-              </p>
-            </div>
-
-            <div className="flex flex-wrap items-center justify-center gap-2.5 pt-2">
-              <button
-                type="button"
-                onClick={() => setActiveView('legalaid')}
-                className="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold rounded-xl transition shadow-xs cursor-pointer"
-              >
-                Find Free Legal Aid (MAJ)
-              </button>
-              {currentUser?.role === 'advocate' ? (
-                <button
-                  type="button"
-                  onClick={() => navigateToProfile(currentUser.id)}
-                  className="px-4 py-2 bg-blue-700 hover:bg-blue-800 text-white text-xs font-bold rounded-xl transition shadow-xs cursor-pointer"
-                >
-                  Publish Service from Profile
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => setActiveView('laws')}
-                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold rounded-xl transition cursor-pointer"
-                >
-                  Consult Statutory Laws
-                </button>
-              )}
-            </div>
-          </div>
-        ) : filteredServices.length === 0 ? (
-          <div className="text-center py-12 bg-white rounded-2xl border border-slate-200 p-6">
-            <p className="text-xs text-slate-500">
-              No legal services matching your filter criteria. Try clearing search filters.
-            </p>
-          </div>
+      <div className="p-4 space-y-3">
+        {filteredServices.length === 0 ? (
+          <EmptyState
+            icon={<Briefcase className="w-6 h-6 text-[var(--muted)]" />}
+            title="No services found"
+            description="No legal services matching your filter criteria. Try clearing search filters."
+          />
         ) : (
-          filteredServices.map(service => {
-            const provider = users.find(u => u.id === service.providerId);
+          filteredServices.map((service) => {
+            const provider = users.find((u) => u.id === service.providerId);
             if (!provider) return null;
 
             return (
-              <div
-                key={service.id}
-                className="bg-white border border-slate-200/90 rounded-2xl p-4 sm:p-5 hover:border-blue-300 hover:shadow-sm transition"
-              >
+              <Card key={service.id}>
                 {/* Header row with provider & fee */}
                 <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 mb-3">
-                  <div className="flex items-start gap-3">
+                  <div className="flex items-start gap-3 min-w-0 flex-1">
                     <UserAvatar
                       user={provider}
                       size="lg"
                       onClick={() => navigateToProfile(provider.id)}
                     />
-                    <div>
+                    <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-1.5">
                         <button
+                          type="button"
                           onClick={() => navigateToProfile(provider.id)}
-                          className="text-xs font-bold text-slate-900 hover:underline text-left"
+                          className="text-[14px] font-medium text-[var(--text)] hover:underline text-left truncate cursor-pointer"
                         >
                           {provider.name}
                         </button>
                         <VerificationBadge user={provider} size="sm" />
                       </div>
-                      <p className="text-[11px] text-slate-500">
+                      <p className="text-[12px] text-[var(--muted)] truncate m-0">
                         {provider.firmName} • {provider.barRollNumber}
                       </p>
-                      <div className="flex items-center gap-2 mt-0.5 text-2xs text-slate-500">
+                      <div className="flex items-center gap-2 mt-0.5 text-[11px] text-[var(--muted)]">
                         {service.reviewsCount && service.reviewsCount > 0 ? (
                           <>
-                            <span className="flex items-center gap-0.5 text-amber-600 font-bold">
-                              <Star className="w-3 h-3 fill-amber-500 text-amber-500" />
+                            <span className="flex items-center gap-0.5 text-[var(--gold)] font-medium">
+                              <Star className="w-3 h-3 fill-current" />
                               <span>{service.rating}</span>
                             </span>
-                            <span>({service.reviewsCount} verified clients)</span>
+                            <span>({service.reviewsCount} reviews)</span>
                             <span>•</span>
                           </>
-                        ) : (
-                          <>
-                            <span className="text-2xs text-blue-700 font-semibold bg-blue-50 px-1.5 py-0.5 rounded">
-                              Bar Verified Counsel
-                            </span>
-                            <span>•</span>
-                          </>
-                        )}
+                        ) : null}
                         <span className="flex items-center gap-0.5">
                           <MapPin className="w-3 h-3" />
                           <span>{service.locationProvince}</span>
@@ -231,51 +176,51 @@ export const LegalServicesView: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="text-left sm:text-right bg-slate-50 sm:bg-transparent p-2.5 sm:p-0 rounded-xl">
-                    <span className="text-base font-black text-blue-700 block">
+                  <div className="text-left sm:text-right shrink-0">
+                    <span className="text-[16px] font-semibold text-[var(--accent)] block">
                       {service.feeRWF.toLocaleString()} RWF
                     </span>
-                    <span className="text-[10px] text-slate-500 block">
-                      {service.feeType === 'fixed' ? 'Fixed Fee per Consultation' : 'Custom Quote'}
+                    <span className="text-[11px] text-[var(--muted)] block">
+                      {service.feeType === 'fixed' ? 'Fixed fee' : 'Custom quote'}
                     </span>
                   </div>
                 </div>
 
                 {/* Service Title & Practice Area */}
                 <div className="mb-2">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-blue-800 bg-blue-50 px-2 py-0.5 rounded">
+                  <span className="text-[11px] font-medium text-[var(--gold)] bg-[var(--bg)] border border-[var(--border)] px-2 py-0.5 rounded">
                     {service.practiceArea}
                   </span>
-                  <h2 className="text-sm font-bold text-slate-900 mt-1.5">
+                  <h2 className="text-[15px] font-medium text-[var(--text)] mt-1.5 m-0">
                     {service.title}
                   </h2>
                 </div>
 
                 {/* Description */}
-                <p className="text-xs text-slate-700 leading-relaxed mb-3">
+                <p className="text-[13px] text-[var(--muted)] leading-relaxed mb-3">
                   {service.description}
                 </p>
 
                 {/* Required Documents / Formats */}
-                <div className="bg-slate-50/70 border border-slate-100 rounded-xl p-2.5 mb-3.5 space-y-1 text-2xs text-slate-600">
+                <div className="bg-[var(--bg)] border border-[var(--border)] rounded-[8px] p-2.5 mb-3.5 space-y-1 text-[12px] text-[var(--muted)]">
                   <div className="flex items-center gap-1.5">
-                    <Clock className="w-3.5 h-3.5 text-slate-400" />
+                    <Clock className="w-3.5 h-3.5" />
                     <span>Estimated turnaround: <strong>{service.turnaroundTime}</strong></span>
                   </div>
                   <div className="flex items-center gap-1.5">
-                    <FileCheck className="w-3.5 h-3.5 text-slate-400" />
+                    <FileCheck className="w-3.5 h-3.5" />
                     <span>Required: {service.requirements.join(', ')}</span>
                   </div>
                 </div>
 
                 {/* Actions Row */}
-                <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-100">
-                  <div className="flex items-center gap-1.5 text-2xs text-slate-500">
-                    <span>Available formats:</span>
-                    {service.formats.map(fmt => (
+                <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-[var(--border)]">
+                  <div className="flex items-center gap-1.5 text-[11px] text-[var(--muted)]">
+                    <span>Formats:</span>
+                    {service.formats.map((fmt) => (
                       <span
                         key={fmt}
-                        className="capitalize bg-slate-100 text-slate-700 font-medium px-2 py-0.5 rounded-md"
+                        className="capitalize bg-[var(--bg)] border border-[var(--border)] text-[var(--text)] font-medium px-2 py-0.5 rounded"
                       >
                         {fmt.replace('_', ' ')}
                       </span>
@@ -284,25 +229,27 @@ export const LegalServicesView: React.FC = () => {
 
                   <div className="flex items-center gap-2">
                     <button
+                      type="button"
                       onClick={() => handleMessageProvider(provider.id)}
-                      className="px-3 py-1.5 border border-slate-300 hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-semibold transition flex items-center gap-1 cursor-pointer"
+                      className="px-3.5 py-1.5 border border-[var(--border)] hover:bg-[var(--hover)] text-[var(--text)] rounded-full text-[12px] font-medium transition-colors flex items-center gap-1 cursor-pointer"
                     >
                       <MessageSquare className="w-3.5 h-3.5" />
-                      <span>Ask Question</span>
+                      <span>Ask question</span>
                     </button>
                     <button
+                      type="button"
                       onClick={() => {
                         if (!currentUser) openLoginModal();
                         else setBookingService(service);
                       }}
-                      className="px-4 py-1.5 bg-blue-700 hover:bg-blue-800 text-white rounded-xl text-xs font-bold transition shadow-xs flex items-center gap-1.5 cursor-pointer"
+                      className="px-4 py-1.5 bg-[var(--accent)] hover:brightness-110 text-white rounded-full text-[12px] font-medium transition-colors flex items-center gap-1.5 cursor-pointer"
                     >
                       <Calendar className="w-3.5 h-3.5" />
-                      <span>Book Consultation</span>
+                      <span>Book consultation</span>
                     </button>
                   </div>
                 </div>
-              </div>
+              </Card>
             );
           })
         )}

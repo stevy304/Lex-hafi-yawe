@@ -2,20 +2,16 @@ import React, { useState } from 'react';
 import {
   Calendar,
   MapPin,
-  Mail,
-  Phone,
-  ShieldCheck,
-  Briefcase,
-  Share2,
-  Edit3,
-  MessageSquare,
   Globe,
   Award,
-  ArrowLeft,
+  Edit3,
+  MessageSquare,
+  Briefcase,
+  ShieldCheck,
   Plus,
   Check,
-  FileCheck,
-  LogOut
+  LogOut,
+  X,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { UserAvatar } from '../common/UserAvatar';
@@ -23,6 +19,9 @@ import { VerificationBadge } from '../common/VerificationBadge';
 import { PostCard } from '../feed/PostCard';
 import { ServiceBookingModal } from '../services/ServiceBookingModal';
 import { LegalService } from '../../types';
+import { PageHeader } from '../common/PageHeader';
+import { Card } from '../common/Card';
+import { EmptyState } from '../common/EmptyState';
 
 export const ProfileView: React.FC = () => {
   const {
@@ -31,7 +30,6 @@ export const ProfileView: React.FC = () => {
     selectedProfileUserId,
     setActiveView,
     posts,
-    replies,
     legalServices,
     publishLegalService,
     submitVerificationApplication,
@@ -40,10 +38,10 @@ export const ProfileView: React.FC = () => {
     updateCurrentUserProfile,
     openLoginModal,
     logout,
-    setIsCreatePostModalOpen
+    setIsCreatePostModalOpen,
   } = useApp();
 
-  const [activeTab, setActiveTab] = useState<'posts' | 'replies' | 'services' | 'saved'>('posts');
+  const [activeTab, setActiveTab] = useState<'posts' | 'services' | 'saved'>('posts');
   const [isEditing, setIsEditing] = useState(false);
   const [selectedServiceForBooking, setSelectedServiceForBooking] = useState<LegalService | null>(null);
 
@@ -68,12 +66,12 @@ export const ProfileView: React.FC = () => {
 
   // Determine user to display
   const profileUserId = selectedProfileUserId || (currentUser ? currentUser.id : users[0].id);
-  const profileUser = users.find(u => u.id === profileUserId) || users[0];
+  const profileUser = users.find((u) => u.id === profileUserId) || users[0];
   const isOwnProfile = currentUser?.id === profileUser.id;
 
-  const userPosts = posts.filter(p => p.authorId === profileUser.id);
-  const userServices = legalServices.filter(s => s.providerId === profileUser.id);
-  const savedPosts = currentUser ? posts.filter(p => p.bookmarkedBy.includes(currentUser.id)) : [];
+  const userPosts = posts.filter((p) => p.authorId === profileUser.id);
+  const userServices = legalServices.filter((s) => s.providerId === profileUser.id);
+  const savedPosts = currentUser ? posts.filter((p) => p.bookmarkedBy.includes(currentUser.id)) : [];
 
   const isFollowing = currentUser?.followingIds?.includes(profileUser.id) || false;
 
@@ -88,7 +86,7 @@ export const ProfileView: React.FC = () => {
     updateCurrentUserProfile({
       bio: editBio,
       location: editLocation,
-      consultationFee: editFee
+      consultationFee: editFee,
     });
     setIsEditing(false);
   };
@@ -122,7 +120,7 @@ export const ProfileView: React.FC = () => {
       formats: ['in_person', 'video'],
       turnaroundTime: '2 - 3 business days',
       locationProvince: 'Kigali City',
-      requirements: ['Valid National ID / Passport', 'Relevant case documentation']
+      requirements: ['Valid National ID / Passport', 'Relevant case documentation'],
     });
 
     setIsNewServiceModalOpen(false);
@@ -139,7 +137,7 @@ export const ProfileView: React.FC = () => {
       barRollNumber: verifBarRoll.trim(),
       lawFirmName: verifFirm.trim() || 'Independent Practice',
       yearsOfExperience: Number(verifExp) || 1,
-      practiceAreas: profileUser.practiceAreas || ['General Civil Law']
+      practiceAreas: profileUser.practiceAreas || ['General Civil Law'],
     });
 
     setVerifSuccess(true);
@@ -150,102 +148,97 @@ export const ProfileView: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50/50">
-      {/* Top sticky header with back button */}
-      <div className="sticky top-0 bg-white/90 backdrop-blur-md border-b border-slate-200 px-4 py-2.5 flex items-center gap-4 z-20">
-        <button
-          onClick={() => setActiveView('feed')}
-          className="p-1.5 hover:bg-slate-100 rounded-full text-slate-600 transition"
-        >
-          <ArrowLeft className="w-5 h-5" />
-        </button>
-        <div>
-          <h1 className="text-sm font-extrabold text-slate-900 leading-tight flex items-center gap-1.5">
-            <span>{profileUser.name}</span>
-            <VerificationBadge user={profileUser} size="sm" />
-          </h1>
-          <span className="text-2xs text-slate-500">
-            {userPosts.length} posts
-          </span>
-        </div>
-      </div>
+    <div className="relative flex-1 min-w-0 max-w-[680px] w-full border-x border-[var(--border)] bg-[var(--bg)] h-screen overflow-y-auto no-scrollbar outline-none select-text">
+      {/* Sticky header with back button */}
+      <PageHeader
+        title={profileUser.name}
+        subtitle={`${userPosts.length} posts`}
+        onBack={() => setActiveView('feed')}
+      />
 
-      {/* Cover Banner (No external unsplash images - pure dynamic CSS gradients) */}
+      {/* Cover Banner */}
       <div
-        className={`h-40 sm:h-52 bg-gradient-to-r ${
+        className={`h-36 sm:h-44 bg-gradient-to-r ${
           profileUser.coverGradient || 'from-[#102744] via-[#1D4ED8] to-[#0F172A]'
         } relative overflow-hidden flex items-end p-4`}
       >
-        <div className="absolute inset-0 bg-pattern opacity-10" />
+        <div className="absolute inset-0 bg-black/10" />
       </div>
 
       {/* Profile Header Block */}
-      <div className="bg-white border-b border-slate-200 px-4 sm:px-6 pb-4">
+      <div className="bg-[var(--surface)] border-b border-[var(--border)] px-4 sm:px-6 pb-4">
         {/* Avatar and Action Buttons Row */}
-        <div className="flex items-end justify-between -mt-14 sm:-mt-16 mb-3 relative">
-          <div className="ring-4 ring-white rounded-full bg-white shadow-md">
-            <UserAvatar user={profileUser} size="2xl" className="w-22 h-22 sm:w-26 sm:h-26" />
+        <div className="flex items-end justify-between -mt-12 sm:-mt-14 mb-3 relative">
+          <div className="ring-4 ring-[var(--surface)] rounded-full bg-[var(--surface)] shadow-md">
+            <UserAvatar user={profileUser} size="2xl" className="w-20 h-20 sm:w-24 sm:h-24" />
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
             {isOwnProfile ? (
               <>
                 <button
+                  type="button"
                   onClick={startEdit}
-                  className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs font-bold transition flex items-center gap-1.5"
+                  className="px-3.5 py-1.5 bg-[var(--surface)] hover:bg-[var(--hover)] text-[var(--text)] border border-[var(--border)] rounded-full text-[12px] font-medium transition-colors flex items-center gap-1.5 cursor-pointer"
                 >
                   <Edit3 className="w-3.5 h-3.5" />
-                  <span>Edit Profile</span>
+                  <span>Edit profile</span>
                 </button>
 
                 {!profileUser.isVerified && profileUser.role !== 'admin' && (
                   <button
+                    type="button"
                     onClick={() => setIsVerifModalOpen(true)}
-                    className="px-3.5 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-xl text-xs font-bold transition flex items-center gap-1.5"
+                    className="px-3.5 py-1.5 bg-[var(--surface)] hover:bg-[var(--hover)] text-[var(--accent)] border border-[var(--border)] rounded-full text-[12px] font-medium transition-colors flex items-center gap-1.5 cursor-pointer"
                   >
                     <ShieldCheck className="w-3.5 h-3.5" />
-                    <span>Apply for Bar Verification</span>
+                    <span>Apply for bar verification</span>
                   </button>
                 )}
 
                 {profileUser.role === 'advocate' && (
                   <button
+                    type="button"
                     onClick={() => setIsNewServiceModalOpen(true)}
-                    className="px-3.5 py-2 bg-blue-700 hover:bg-blue-800 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-xs cursor-pointer"
+                    className="px-3.5 py-1.5 bg-[var(--accent)] hover:brightness-110 text-white rounded-full text-[12px] font-medium transition-colors flex items-center gap-1.5 cursor-pointer"
                   >
                     <Plus className="w-3.5 h-3.5" />
-                    <span>List New Service</span>
+                    <span>List service</span>
                   </button>
                 )}
 
                 <button
+                  type="button"
                   onClick={() => {
                     logout();
                     setActiveView('feed');
                   }}
-                  className="px-3.5 py-2 bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer"
+                  className="px-3.5 py-1.5 border border-[var(--border)] hover:bg-[var(--hover)] text-[var(--danger)] rounded-full text-[12px] font-medium transition-colors flex items-center gap-1.5 cursor-pointer"
                   title="Sign out of your session"
                 >
                   <LogOut className="w-3.5 h-3.5" />
-                  <span>Log Out</span>
+                  <span>Log out</span>
                 </button>
               </>
             ) : (
               <>
                 <button
+                  type="button"
                   onClick={handleMessageUser}
-                  className="p-2 border border-slate-300 hover:bg-slate-50 text-slate-700 rounded-xl transition"
+                  className="p-2 border border-[var(--border)] hover:bg-[var(--hover)] text-[var(--text)] rounded-full transition-colors cursor-pointer"
                   title="Send private message"
+                  aria-label="Send private message"
                 >
                   <MessageSquare className="w-4 h-4" />
                 </button>
 
                 <button
+                  type="button"
                   onClick={handleFollowClick}
-                  className={`px-4 py-2 rounded-xl text-xs font-bold transition shadow-xs cursor-pointer ${
+                  className={`px-4 py-1.5 rounded-full text-[13px] font-medium transition-colors cursor-pointer ${
                     isFollowing
-                      ? 'bg-slate-100 hover:bg-slate-200 text-slate-800'
-                      : 'bg-[#102744] hover:bg-slate-800 text-white'
+                      ? 'border border-[var(--border)] text-[var(--text)] hover:border-[var(--danger)] hover:text-[var(--danger)]'
+                      : 'bg-[var(--text)] text-[var(--bg)] hover:opacity-90'
                   }`}
                 >
                   {isFollowing ? 'Following' : 'Follow'}
@@ -253,11 +246,12 @@ export const ProfileView: React.FC = () => {
 
                 {profileUser.role === 'advocate' && userServices.length > 0 && (
                   <button
+                    type="button"
                     onClick={() => setSelectedServiceForBooking(userServices[0])}
-                    className="px-4 py-2 bg-blue-700 hover:bg-blue-800 text-white rounded-xl text-xs font-bold transition shadow-xs flex items-center gap-1.5 cursor-pointer"
+                    className="px-4 py-1.5 bg-[var(--accent)] hover:brightness-110 text-white rounded-full text-[13px] font-medium transition-colors flex items-center gap-1.5 cursor-pointer"
                   >
                     <Briefcase className="w-3.5 h-3.5" />
-                    <span>Book Consultation</span>
+                    <span>Book consultation</span>
                   </button>
                 )}
               </>
@@ -269,43 +263,43 @@ export const ProfileView: React.FC = () => {
         <div className="space-y-2">
           <div>
             <div className="flex items-center gap-1.5">
-              <h2 className="text-lg font-black text-slate-900">
+              <h2 className="text-[18px] font-semibold text-[var(--text)] m-0">
                 {profileUser.name}
               </h2>
               <VerificationBadge user={profileUser} size="md" showLabel={true} />
             </div>
-            <p className="text-xs text-slate-500 font-medium">
+            <p className="text-[13px] text-[var(--muted)] m-0 font-medium">
               @{profileUser.username}
             </p>
           </div>
 
           {/* Professional Credentials Banner if Advocate */}
           {profileUser.role === 'advocate' && (
-            <div className="bg-blue-50/70 border border-blue-200/80 rounded-xl p-3 my-2 text-xs">
-              <div className="flex flex-wrap items-center gap-y-1 gap-x-4 text-blue-950 font-semibold mb-1">
+            <div className="bg-[var(--bg)] border border-[var(--border)] rounded-[10px] p-3 my-2 text-[13px]">
+              <div className="flex flex-wrap items-center gap-y-1 gap-x-4 text-[var(--text)] font-medium mb-1">
                 {profileUser.barRollNumber && (
                   <span>
-                    📜 Roll No: <strong className="font-extrabold">{profileUser.barRollNumber}</strong>
+                    Roll no: <strong>{profileUser.barRollNumber}</strong>
                   </span>
                 )}
                 {profileUser.firmName && (
                   <span>
-                    🏢 Firm: <strong>{profileUser.firmName}</strong>
+                    Firm: <strong>{profileUser.firmName}</strong>
                   </span>
                 )}
                 {profileUser.consultationFee && (
                   <span>
-                    💳 Fee: <strong>{profileUser.consultationFee.toLocaleString()} RWF</strong> / session
+                    Fee: <strong>{profileUser.consultationFee.toLocaleString()} RWF</strong> / session
                   </span>
                 )}
               </div>
 
               {profileUser.practiceAreas && profileUser.practiceAreas.length > 0 && (
                 <div className="flex flex-wrap gap-1 mt-1.5">
-                  {profileUser.practiceAreas.map(area => (
+                  {profileUser.practiceAreas.map((area) => (
                     <span
                       key={area}
-                      className="bg-white border border-blue-200 text-blue-800 text-[10px] font-bold px-2 py-0.5 rounded-md"
+                      className="bg-[var(--surface)] border border-[var(--border)] text-[var(--gold)] text-[11px] font-medium px-2 py-0.5 rounded"
                     >
                       {area}
                     </span>
@@ -317,67 +311,68 @@ export const ProfileView: React.FC = () => {
 
           {/* Institutional Banner */}
           {profileUser.role === 'institution' && (
-            <div className="bg-amber-50/70 border border-amber-200/80 rounded-xl p-3 my-2 text-xs text-amber-900">
-              <div className="flex items-center gap-2 font-bold mb-0.5">
-                <Award className="w-4 h-4 text-amber-600" />
-                <span>Verified Statutory Government Institution</span>
+            <div className="bg-[var(--bg)] border border-[var(--border)] rounded-[10px] p-3 my-2 text-[13px] text-[var(--text)]">
+              <div className="flex items-center gap-2 font-medium mb-0.5 text-[var(--gold)]">
+                <Award className="w-4 h-4" />
+                <span>Verified statutory government institution</span>
               </div>
-              <p className="text-2xs text-amber-800">
+              <p className="text-[12px] text-[var(--muted)] m-0">
                 Authorized for publishing official gazette communiqués, statutory circulars, and judicial awareness programs.
               </p>
             </div>
           )}
 
           {/* Bio */}
-          <p className="text-xs text-slate-800 leading-relaxed max-w-2xl">
+          <p className="text-[14px] text-[var(--text)] leading-relaxed m-0">
             {profileUser.bio}
           </p>
 
           {/* Metadata Row */}
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-2xs text-slate-500 pt-1">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[12px] text-[var(--muted)] pt-1">
             {profileUser.location && (
               <div className="flex items-center gap-1">
-                <MapPin className="w-3.5 h-3.5 text-slate-400" />
+                <MapPin className="w-3.5 h-3.5" />
                 <span>{profileUser.location}</span>
               </div>
             )}
             <div className="flex items-center gap-1">
-              <Calendar className="w-3.5 h-3.5 text-slate-400" />
+              <Calendar className="w-3.5 h-3.5" />
               <span>Joined {profileUser.joinedDate}</span>
             </div>
             {profileUser.languages && profileUser.languages.length > 0 && (
               <div className="flex items-center gap-1">
-                <Globe className="w-3.5 h-3.5 text-slate-400" />
+                <Globe className="w-3.5 h-3.5" />
                 <span>{profileUser.languages.join(', ')}</span>
               </div>
             )}
           </div>
 
           {/* Followers / Following Stats */}
-          <div className="flex items-center gap-4 text-xs pt-1">
+          <div className="flex items-center gap-4 text-[13px] pt-1">
             <div>
-              <span className="font-extrabold text-slate-900">
+              <span className="font-semibold text-[var(--text)]">
                 {profileUser.followingCount}
               </span>{' '}
-              <span className="text-slate-500">Following</span>
+              <span className="text-[var(--muted)]">Following</span>
             </div>
             <div>
-              <span className="font-extrabold text-slate-900">
+              <span className="font-semibold text-[var(--text)]">
                 {profileUser.followersCount}
               </span>{' '}
-              <span className="text-slate-500">Followers</span>
+              <span className="text-[var(--muted)]">Followers</span>
             </div>
           </div>
         </div>
 
         {/* Profile Tabs */}
-        <div className="flex border-b border-slate-200 mt-4 -mx-4 sm:-mx-6 px-4 sm:px-6">
+        <div className="flex border-b border-[var(--border)] mt-4 -mx-4 sm:-mx-6 px-4 sm:px-6">
           <button
+            type="button"
             onClick={() => setActiveTab('posts')}
-            className={`py-3 px-4 text-xs font-bold transition border-b-2 cursor-pointer ${
+            className={`py-2.5 px-4 text-[13px] font-medium transition-colors border-b-2 cursor-pointer ${
               activeTab === 'posts'
-                ? 'border-blue-700 text-blue-700'
-                : 'border-transparent text-slate-500 hover:text-slate-800'
+                ? 'border-[var(--accent)] text-[var(--text)]'
+                : 'border-transparent text-[var(--muted)] hover:text-[var(--text)]'
             }`}
           >
             Posts ({userPosts.length})
@@ -385,24 +380,26 @@ export const ProfileView: React.FC = () => {
 
           {profileUser.role === 'advocate' && (
             <button
+              type="button"
               onClick={() => setActiveTab('services')}
-              className={`py-3 px-4 text-xs font-bold transition border-b-2 cursor-pointer ${
+              className={`py-2.5 px-4 text-[13px] font-medium transition-colors border-b-2 cursor-pointer ${
                 activeTab === 'services'
-                  ? 'border-blue-700 text-blue-700'
-                  : 'border-transparent text-slate-500 hover:text-slate-800'
+                  ? 'border-[var(--accent)] text-[var(--text)]'
+                  : 'border-transparent text-[var(--muted)] hover:text-[var(--text)]'
               }`}
             >
-              Services & Fees ({userServices.length})
+              Services ({userServices.length})
             </button>
           )}
 
           {isOwnProfile && (
             <button
+              type="button"
               onClick={() => setActiveTab('saved')}
-              className={`py-3 px-4 text-xs font-bold transition border-b-2 cursor-pointer ${
+              className={`py-2.5 px-4 text-[13px] font-medium transition-colors border-b-2 cursor-pointer ${
                 activeTab === 'saved'
-                  ? 'border-blue-700 text-blue-700'
-                  : 'border-transparent text-slate-500 hover:text-slate-800'
+                  ? 'border-[var(--accent)] text-[var(--text)]'
+                  : 'border-transparent text-[var(--muted)] hover:text-[var(--text)]'
               }`}
             >
               Bookmarks ({savedPosts.length})
@@ -412,153 +409,151 @@ export const ProfileView: React.FC = () => {
       </div>
 
       {/* Tab Content Stream */}
-      <div className="divide-y divide-slate-200">
-        {activeTab === 'posts' && (
-          userPosts.length === 0 ? (
-            <div className="p-12 text-center text-xs text-slate-500 bg-white space-y-3">
-              <p className="font-semibold text-slate-700">
-                {isOwnProfile ? 'You haven’t published any posts yet.' : 'No posts published yet by this user.'}
-              </p>
-              <p className="text-2xs text-slate-400 max-w-sm mx-auto leading-relaxed">
-                {isOwnProfile
-                  ? 'Share your legal perspective, ask a statutory question, or publish an article to start conversations.'
-                  : 'When this user publishes legal updates or commentary, they will appear here.'}
-              </p>
-              {isOwnProfile && (
-                <button
-                  type="button"
-                  onClick={() => setIsCreatePostModalOpen(true)}
-                  className="px-4 py-2 bg-blue-700 hover:bg-blue-800 text-white rounded-xl text-xs font-bold transition shadow-xs cursor-pointer inline-flex items-center gap-1.5"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>Create First Post</span>
-                </button>
-              )}
-            </div>
+      <div className="divide-y divide-[var(--border)]">
+        {activeTab === 'posts' &&
+          (userPosts.length === 0 ? (
+            <EmptyState
+              title={
+                isOwnProfile
+                  ? "You haven't published any posts yet"
+                  : 'No posts published yet by this user'
+              }
+              description={
+                isOwnProfile
+                  ? 'Share your legal perspective, ask a statutory question, or publish an article.'
+                  : 'When this user publishes legal updates or commentary, they will appear here.'
+              }
+              action={
+                isOwnProfile
+                  ? {
+                      label: 'Create first post',
+                      onClick: () => setIsCreatePostModalOpen(true),
+                    }
+                  : undefined
+              }
+            />
           ) : (
-            userPosts.map(post => <PostCard key={post.id} post={post} />)
-          )
-        )}
+            userPosts.map((post) => <PostCard key={post.id} post={post} />)
+          ))}
 
         {activeTab === 'services' && (
-          <div className="p-4 bg-white space-y-4">
+          <div className="p-4 space-y-3">
             {userServices.length === 0 ? (
-              <div className="p-8 text-center text-xs text-slate-500 space-y-2">
-                <p className="font-semibold text-slate-700">No legal services listed yet.</p>
-                {isOwnProfile && profileUser.role === 'advocate' && (
-                  <button
-                    type="button"
-                    onClick={() => setIsNewServiceModalOpen(true)}
-                    className="px-4 py-2 bg-blue-700 hover:bg-blue-800 text-white rounded-xl text-xs font-bold transition shadow-xs cursor-pointer inline-flex items-center gap-1.5 mt-2"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    <span>List Practice Area & Honorarium</span>
-                  </button>
-                )}
-              </div>
+              <EmptyState
+                title="No legal services listed yet"
+                description="List your legal advisory offerings and fixed consultation honorarium."
+                action={
+                  isOwnProfile && profileUser.role === 'advocate'
+                    ? {
+                        label: 'List service',
+                        onClick: () => setIsNewServiceModalOpen(true),
+                      }
+                    : undefined
+                }
+              />
             ) : (
-              userServices.map(service => (
-                <div
-                  key={service.id}
-                  className="border border-slate-200 rounded-2xl p-4 hover:border-blue-300 transition shadow-xs"
-                >
+              userServices.map((service) => (
+                <Card key={service.id}>
                   <div className="flex items-start justify-between gap-2 mb-2">
                     <div>
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-blue-700 bg-blue-50 px-2 py-0.5 rounded">
+                      <span className="text-[11px] font-medium text-[var(--gold)] bg-[var(--bg)] border border-[var(--border)] px-2 py-0.5 rounded">
                         {service.practiceArea}
                       </span>
-                      <h3 className="text-sm font-bold text-slate-900 mt-1">
+                      <h3 className="text-[15px] font-medium text-[var(--text)] mt-1.5">
                         {service.title}
                       </h3>
                     </div>
                     <div className="text-right">
-                      <span className="text-sm font-black text-blue-700">
+                      <span className="text-[15px] font-semibold text-[var(--accent)]">
                         {service.feeRWF.toLocaleString()} RWF
                       </span>
-                      <span className="text-[10px] text-slate-500 block">
+                      <span className="text-[11px] text-[var(--muted)] block">
                         {service.turnaroundTime}
                       </span>
                     </div>
                   </div>
 
-                  <p className="text-xs text-slate-700 leading-relaxed mb-3">
+                  <p className="text-[13px] text-[var(--muted)] leading-relaxed mb-3">
                     {service.description}
                   </p>
 
-                  <div className="flex items-center justify-between pt-2 border-t border-slate-100">
-                    <span className="text-2xs text-slate-500">
+                  <div className="flex items-center justify-between pt-2 border-t border-[var(--border)]">
+                    <span className="text-[12px] text-[var(--muted)]">
                       Formats: {service.formats.join(', ')}
                     </span>
                     <button
+                      type="button"
                       onClick={() => setSelectedServiceForBooking(service)}
-                      className="px-3.5 py-1.5 bg-blue-700 hover:bg-blue-800 text-white rounded-xl text-xs font-bold transition shadow-xs cursor-pointer"
+                      className="px-3.5 py-1.5 bg-[var(--accent)] hover:brightness-110 text-white rounded-full text-[12px] font-medium transition-colors cursor-pointer"
                     >
-                      Book Consultation
+                      Book consultation
                     </button>
                   </div>
-                </div>
+                </Card>
               ))
             )}
           </div>
         )}
 
-        {activeTab === 'saved' && (
-          savedPosts.length === 0 ? (
-            <div className="p-12 text-center text-xs text-slate-500 bg-white">
-              You haven't bookmarked any legal posts yet.
-            </div>
+        {activeTab === 'saved' &&
+          (savedPosts.length === 0 ? (
+            <EmptyState
+              title="No bookmarks yet"
+              description="You haven't bookmarked any legal posts yet."
+            />
           ) : (
-            savedPosts.map(post => <PostCard key={post.id} post={post} />)
-          )
-        )}
+            savedPosts.map((post) => <PostCard key={post.id} post={post} />)
+          ))}
       </div>
 
       {/* Edit Profile Modal */}
       {isEditing && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs">
-          <div className="bg-white rounded-2xl p-5 w-full max-w-md shadow-2xl space-y-4">
-            <h3 className="text-sm font-bold text-slate-900">Edit Your Profile</h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+          <div className="bg-[var(--surface)] border border-[var(--border)] rounded-[12px] p-5 w-full max-w-md shadow-2xl space-y-4">
+            <h3 className="text-[16px] font-semibold text-[var(--text)] m-0">Edit your profile</h3>
             <div>
-              <label className="text-xs font-semibold text-slate-700 block mb-1">Bio</label>
+              <label className="text-[12px] font-medium text-[var(--muted)] block mb-1">Bio</label>
               <textarea
                 value={editBio}
-                onChange={e => setEditBio(e.target.value)}
+                onChange={(e) => setEditBio(e.target.value)}
                 rows={3}
-                className="w-full text-xs border border-slate-200 rounded-xl p-2.5 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                className="w-full text-[13px] bg-[var(--bg)] text-[var(--text)] border border-[var(--border)] rounded-[8px] p-2.5 focus:outline-none focus:border-[var(--accent)] resize-none"
               />
             </div>
             <div>
-              <label className="text-xs font-semibold text-slate-700 block mb-1">Location</label>
+              <label className="text-[12px] font-medium text-[var(--muted)] block mb-1">Location</label>
               <input
                 type="text"
                 value={editLocation}
-                onChange={e => setEditLocation(e.target.value)}
-                className="w-full text-xs border border-slate-200 rounded-xl p-2.5 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                onChange={(e) => setEditLocation(e.target.value)}
+                className="w-full text-[13px] bg-[var(--bg)] text-[var(--text)] border border-[var(--border)] rounded-[8px] p-2.5 focus:outline-none focus:border-[var(--accent)]"
               />
             </div>
             {profileUser.role === 'advocate' && (
               <div>
-                <label className="text-xs font-semibold text-slate-700 block mb-1">
-                  Standard Consultation Fee (RWF)
+                <label className="text-[12px] font-medium text-[var(--muted)] block mb-1">
+                  Standard consultation fee (RWF)
                 </label>
                 <input
                   type="number"
                   value={editFee}
-                  onChange={e => setEditFee(Number(e.target.value))}
-                  className="w-full text-xs border border-slate-200 rounded-xl p-2.5 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                  onChange={(e) => setEditFee(Number(e.target.value))}
+                  className="w-full text-[13px] bg-[var(--bg)] text-[var(--text)] border border-[var(--border)] rounded-[8px] p-2.5 focus:outline-none focus:border-[var(--accent)]"
                 />
               </div>
             )}
-            <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+            <div className="flex justify-end gap-2 pt-2 border-t border-[var(--border)]">
               <button
+                type="button"
                 onClick={() => setIsEditing(false)}
-                className="px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-100 rounded-xl"
+                className="px-4 py-2 rounded-full border border-[var(--border)] text-[var(--text)] hover:bg-[var(--hover)] text-[13px] font-medium transition-colors cursor-pointer"
               >
                 Cancel
               </button>
               <button
+                type="button"
                 onClick={handleSaveProfile}
-                className="px-4 py-1.5 text-xs font-bold bg-blue-700 text-white rounded-xl hover:bg-blue-800"
+                className="px-4 py-2 rounded-full bg-[var(--accent)] hover:brightness-110 text-white text-[13px] font-medium transition-colors cursor-pointer"
               >
                 Save
               </button>
@@ -569,28 +564,28 @@ export const ProfileView: React.FC = () => {
 
       {/* Add New Legal Service Modal */}
       {isNewServiceModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs">
-          <div className="bg-white rounded-2xl p-5 w-full max-w-md shadow-2xl space-y-3.5">
-            <h3 className="text-sm font-bold text-slate-900">Publish New Legal Service Offering</h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+          <div className="bg-[var(--surface)] border border-[var(--border)] rounded-[12px] p-5 w-full max-w-md shadow-2xl space-y-3.5">
+            <h3 className="text-[16px] font-semibold text-[var(--text)] m-0">Publish new legal service</h3>
             <form onSubmit={handleCreateService} className="space-y-3">
               <div>
-                <label className="text-xs font-semibold text-slate-700 block mb-1">Service Title</label>
+                <label className="text-[12px] font-medium text-[var(--muted)] block mb-1">Service title</label>
                 <input
                   type="text"
                   required
                   value={newSvcTitle}
-                  onChange={e => setNewSvcTitle(e.target.value)}
+                  onChange={(e) => setNewSvcTitle(e.target.value)}
                   placeholder="e.g. Commercial Lease Agreement Review"
-                  className="w-full text-xs border border-slate-200 rounded-xl p-2.5 focus:ring-1 focus:ring-blue-600 focus:outline-none"
+                  className="w-full text-[13px] bg-[var(--bg)] text-[var(--text)] border border-[var(--border)] rounded-[8px] p-2.5 focus:border-[var(--accent)] focus:outline-none"
                 />
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-slate-700 block mb-1">Practice Area</label>
+                <label className="text-[12px] font-medium text-[var(--muted)] block mb-1">Practice area</label>
                 <select
                   value={newSvcArea}
-                  onChange={e => setNewSvcArea(e.target.value)}
-                  className="w-full text-xs border border-slate-200 rounded-xl p-2.5 focus:ring-1 focus:ring-blue-600 focus:outline-none"
+                  onChange={(e) => setNewSvcArea(e.target.value)}
+                  className="w-full text-[13px] bg-[var(--bg)] text-[var(--text)] border border-[var(--border)] rounded-[8px] p-2.5 focus:border-[var(--accent)] focus:outline-none"
                 >
                   <option value="Land & Property Conveyancing">Land & Property Conveyancing</option>
                   <option value="Commercial Law">Commercial Law</option>
@@ -601,40 +596,40 @@ export const ProfileView: React.FC = () => {
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-slate-700 block mb-1">Fixed Fee (RWF)</label>
+                <label className="text-[12px] font-medium text-[var(--muted)] block mb-1">Fixed fee (RWF)</label>
                 <input
                   type="number"
                   required
                   value={newSvcFee}
-                  onChange={e => setNewSvcFee(Number(e.target.value))}
-                  className="w-full text-xs border border-slate-200 rounded-xl p-2.5 focus:ring-1 focus:ring-blue-600 focus:outline-none"
+                  onChange={(e) => setNewSvcFee(Number(e.target.value))}
+                  className="w-full text-[13px] bg-[var(--bg)] text-[var(--text)] border border-[var(--border)] rounded-[8px] p-2.5 focus:border-[var(--accent)] focus:outline-none"
                 />
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-slate-700 block mb-1">Service Scope & Description</label>
+                <label className="text-[12px] font-medium text-[var(--muted)] block mb-1">Service scope and description</label>
                 <textarea
                   value={newSvcDesc}
-                  onChange={e => setNewSvcDesc(e.target.value)}
+                  onChange={(e) => setNewSvcDesc(e.target.value)}
                   rows={2}
                   placeholder="Describe scope of work included in this consultation..."
-                  className="w-full text-xs border border-slate-200 rounded-xl p-2.5 focus:ring-1 focus:ring-blue-600 focus:outline-none"
+                  className="w-full text-[13px] bg-[var(--bg)] text-[var(--text)] border border-[var(--border)] rounded-[8px] p-2.5 focus:border-[var(--accent)] focus:outline-none resize-none"
                 />
               </div>
 
-              <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+              <div className="flex justify-end gap-2 pt-2 border-t border-[var(--border)]">
                 <button
                   type="button"
                   onClick={() => setIsNewServiceModalOpen(false)}
-                  className="px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-100 rounded-xl"
+                  className="px-4 py-2 rounded-full border border-[var(--border)] text-[var(--text)] hover:bg-[var(--hover)] text-[13px] font-medium transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-1.5 text-xs font-bold bg-blue-700 text-white rounded-xl hover:bg-blue-800"
+                  className="px-4 py-2 rounded-full bg-[var(--accent)] hover:brightness-110 text-white text-[13px] font-medium transition-colors cursor-pointer"
                 >
-                  Publish Service
+                  Publish service
                 </button>
               </div>
             </form>
@@ -644,70 +639,70 @@ export const ProfileView: React.FC = () => {
 
       {/* Apply for Bar Verification Modal */}
       {isVerifModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs">
-          <div className="bg-white rounded-2xl p-5 w-full max-w-md shadow-2xl space-y-3.5">
-            <h3 className="text-sm font-bold text-slate-900">Apply for Rwanda Bar Association Verification</h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+          <div className="bg-[var(--surface)] border border-[var(--border)] rounded-[12px] p-5 w-full max-w-md shadow-2xl space-y-3.5">
+            <h3 className="text-[16px] font-semibold text-[var(--text)] m-0">Apply for Rwanda Bar Association verification</h3>
 
             {verifSuccess ? (
               <div className="py-6 text-center space-y-2">
-                <div className="w-10 h-10 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto">
+                <div className="w-10 h-10 bg-[var(--ok-bg)] text-[var(--ok-text)] rounded-full flex items-center justify-center mx-auto">
                   <Check className="w-5 h-5" />
                 </div>
-                <p className="text-xs font-bold text-slate-900">Application Submitted to Verification Queue!</p>
-                <p className="text-2xs text-slate-500">
+                <p className="text-[14px] font-medium text-[var(--text)]">Application submitted to verification queue</p>
+                <p className="text-[12px] text-[var(--muted)]">
                   Our compliance team will review your Bar Roll Number against the active Rwanda Bar Association roster.
                 </p>
               </div>
             ) : (
               <form onSubmit={handleApplyVerification} className="space-y-3">
                 <div>
-                  <label className="text-xs font-semibold text-slate-700 block mb-1">Bar Roll Number</label>
+                  <label className="text-[12px] font-medium text-[var(--muted)] block mb-1">Bar roll number</label>
                   <input
                     type="text"
                     required
                     value={verifBarRoll}
-                    onChange={e => setVerifBarRoll(e.target.value)}
+                    onChange={(e) => setVerifBarRoll(e.target.value)}
                     placeholder="e.g. RBA/1940/2024"
-                    className="w-full text-xs border border-slate-200 rounded-xl p-2.5 focus:ring-1 focus:ring-blue-600 focus:outline-none"
+                    className="w-full text-[13px] bg-[var(--bg)] text-[var(--text)] border border-[var(--border)] rounded-[8px] p-2.5 focus:border-[var(--accent)] focus:outline-none"
                   />
                 </div>
 
                 <div>
-                  <label className="text-xs font-semibold text-slate-700 block mb-1">Law Firm / Practice Name</label>
+                  <label className="text-[12px] font-medium text-[var(--muted)] block mb-1">Law firm / Practice name</label>
                   <input
                     type="text"
                     required
                     value={verifFirm}
-                    onChange={e => setVerifFirm(e.target.value)}
+                    onChange={(e) => setVerifFirm(e.target.value)}
                     placeholder="e.g. Kigali Legal Associates"
-                    className="w-full text-xs border border-slate-200 rounded-xl p-2.5 focus:ring-1 focus:ring-blue-600 focus:outline-none"
+                    className="w-full text-[13px] bg-[var(--bg)] text-[var(--text)] border border-[var(--border)] rounded-[8px] p-2.5 focus:border-[var(--accent)] focus:outline-none"
                   />
                 </div>
 
                 <div>
-                  <label className="text-xs font-semibold text-slate-700 block mb-1">Years of Post-Qualification Experience</label>
+                  <label className="text-[12px] font-medium text-[var(--muted)] block mb-1">Years of experience</label>
                   <input
                     type="number"
                     value={verifExp}
-                    onChange={e => setVerifExp(Number(e.target.value))}
+                    onChange={(e) => setVerifExp(Number(e.target.value))}
                     min={1}
-                    className="w-full text-xs border border-slate-200 rounded-xl p-2.5 focus:ring-1 focus:ring-blue-600 focus:outline-none"
+                    className="w-full text-[13px] bg-[var(--bg)] text-[var(--text)] border border-[var(--border)] rounded-[8px] p-2.5 focus:border-[var(--accent)] focus:outline-none"
                   />
                 </div>
 
-                <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+                <div className="flex justify-end gap-2 pt-2 border-t border-[var(--border)]">
                   <button
                     type="button"
                     onClick={() => setIsVerifModalOpen(false)}
-                    className="px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-100 rounded-xl"
+                    className="px-4 py-2 rounded-full border border-[var(--border)] text-[var(--text)] hover:bg-[var(--hover)] text-[13px] font-medium transition-colors cursor-pointer"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="px-4 py-1.5 text-xs font-bold bg-blue-700 text-white rounded-xl hover:bg-blue-800"
+                    className="px-4 py-2 rounded-full bg-[var(--accent)] hover:brightness-110 text-white text-[13px] font-medium transition-colors cursor-pointer"
                   >
-                    Submit for Bar Audit
+                    Submit for bar audit
                   </button>
                 </div>
               </form>
